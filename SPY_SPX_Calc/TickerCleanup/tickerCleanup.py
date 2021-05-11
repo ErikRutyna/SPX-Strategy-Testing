@@ -1,9 +1,6 @@
-from pathlib import Path
 import csv
 import os
-import pandas as pd
-import numpy as np
-from multiprocessing import Pool
+from pathlib import Path
 
 def tickerDataCleaner(Ticker, Extension):
     """Cleans up the ticker information from the CSV source file.
@@ -22,17 +19,22 @@ def tickerDataCleaner(Ticker, Extension):
     FilePath : string
         The filepath to the source CSV containing the security and derivatives information
 
-    Returns
+    "Returns"
     -------
-    FilePath : string
-        The same filepath location is the cleaned and edited CSV
+    rawText : string
+        Large string array that needs to be written to a CSV. This array is the cleaned version
+        of the ticket information.
     """
 
 
-    # Get our full Filepath
+    # Get our full filepath
     FilePath = r"C:\Users\Erik\Desktop\devMisc\OptionsCalc\MasterData"
-    CSVPath = os.path.join(FilePath, Extension)
+    SourceFile = Extension + ".csv"
+    CSVPath = os.path.join(FilePath, SourceFile)
     
+    # Get our final filepath
+    FinalFile = Extension + "DATA.csv"
+    FinalPath = os.path.join(FilePath, FinalFile)
 
     # Grab the CSV from the fixed Master Data directory, load it in and get ready to clean it
     with open(CSVPath) as tickerCSV:
@@ -41,24 +43,37 @@ def tickerDataCleaner(Ticker, Extension):
     symbolCol = 0
     # Find out which column is our matching symbol
     for iSym in range(len(rawText[1])):
-        if rawText[0][iSym] == 'ticker':
+        if rawText[0][iSym] == 'symbol':
             symbolCol = iSym
-        
+
+    
+    impVolCol = 0
+    # Find out which column is our implied volatility
+    for iVol in range(len(rawText[1])):
+        if rawText[0][iVol] == 'impl_volatility':
+            impVolCol = iVol
+
+    # Generate strings for the two long names of the options to be checked
+    contractName1 = Ticker + " 1"
+    contractName2 = Ticker + " 2"
+
     iRow = len(rawText) - 1
     # If the row of the text is not SPY, delete the row
+    # Or if the row is empty then delete the row
     # Save the initial line at row 0 for the information on formatting
-    while iRow > 1:
+    while iRow > 0:
         #print(rawText[iRow][symbolCol])
-        if rawText[iRow][symbolCol] != Ticker:
-            del rawText[iRow]
+        if ((contractName1 in rawText[iRow][symbolCol]) or (contractName2 in rawText[iRow][symbolCol])) and (bool(rawText[iRow][impVolCol])):
             iRow -= 1
         else:
+            del rawText[iRow]
             iRow -= 1
 
     print("Done removing non-ticker rows, onto writing!")
-
-    # Write the text back to a cleaned CSV
-    with open(CSVPath, "wb") as cleanedTicker:
-        writer = csv.writer(cleanedTicker, delimiter=',')
+    
+    with open(FinalPath, 'w', newline='') as file:
+        writer = csv.writer(file)
         for line in rawText:
-            writer.writerow(line) 
+            writer.writerow(line)
+
+    print("Done writing, please spot check final output file!")
