@@ -2,7 +2,7 @@ import csv
 import os
 from pathlib import Path
 
-def tickerDataCleaner(Ticker, Extension):
+def tickerDataCleaner(Ticker, FileName):
     """Cleans up the ticker information from the CSV source file.
 
     Extended Summary
@@ -21,19 +21,17 @@ def tickerDataCleaner(Ticker, Extension):
 
     "Returns"
     -------
-    rawText : string
-        Large string array that needs to be written to a CSV. This array is the cleaned version
-        of the ticket information.
+    Nothing --- saves a file in the same directory that is a "cleaned" CSV
     """
 
 
     # Get our full filepath
     FilePath = r"C:\Users\Erik\Desktop\devMisc\OptionsCalc\MasterData"
-    SourceFile = Extension + ".csv"
+    SourceFile = FileName + ".csv"
     CSVPath = os.path.join(FilePath, SourceFile)
     
     # Get our final filepath
-    FinalFile = Extension + "DATA.csv"
+    FinalFile = FileName + "DATA.csv"
     FinalPath = os.path.join(FilePath, FinalFile)
 
     # Grab the CSV from the fixed Master Data directory, load it in and get ready to clean it
