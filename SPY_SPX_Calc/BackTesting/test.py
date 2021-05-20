@@ -1,10 +1,12 @@
 from typing import Optional
-import ImpliedVolatilityRelator as IVR
+import optionsCalc as OC
 
 F = r"C:\Users\Erik\Desktop\devMisc\OptionsCalc\MasterData"
 OPT = "spy_testingDATA"
 EOD = "spy_historical_data"
 VIX = "vix_data_master"
-Sty = "A"
 
-IVR.vix_correlator(F, OPT, EOD, VIX, Sty)
+Fits = OC.impv_rel(F, OPT, EOD, VIX, 8)
+for i in range(len(Fits)):
+    print(Fits[i])
+    print("\n")

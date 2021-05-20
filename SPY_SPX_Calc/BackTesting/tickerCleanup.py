@@ -21,7 +21,7 @@ def tickerDataCleaner(Ticker, FileName):
 
     "Returns"
     -------
-    Nothing --- saves a file in the same directory that is a "cleaned" CSV
+    Nothing --- saves a file in the same directory as input files that is a "cleaned" CSV
     """
 
 
