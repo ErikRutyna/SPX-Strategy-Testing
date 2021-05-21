@@ -1,13 +1,14 @@
 import math
 import csv
 import os
+import numpy as np
 import matplotlib.pyplot as plt
 from numpy.core.function_base import linspace
 from scipy import stats
 from pathlib import Path
 from datetime import date
 
-def black_scholes(value, strike, interest, time, IV, type):
+def black_scholes(symbol, value, strike, interest, time, IV, type):
     """Calculates the fair market value of an option using the Black-Scholes formula.
 
     Extended Summary
@@ -18,6 +19,9 @@ def black_scholes(value, strike, interest, time, IV, type):
 
     Parameters
     ----------
+    symbol : string
+        Symbol/Ticker for the underyling security
+
     price : float
         Current value of the underlying security
 
@@ -34,16 +38,42 @@ def black_scholes(value, strike, interest, time, IV, type):
         Implied volatility of the derivative contract
 
     Type : char
-        Call or Put flag 
+        Call or Put flag - is only either P or F
 
     Returns
     -------
     contract : OPTION
         Information about the option contract including basic information as well as the greeks.
     """
+    option_info = OPTION()
+    # Formula for Black-Scholes --> https://en.wikipedia.org/wiki/Black%E2%80%93Scholes_model
+    d1 = 1 / (IV * math.sqrt(time/365)) * (np.log(value/strike) + (interest + IV**2/2)*(time/365))
+    #d1 = 0.4342
+    d2 = d1 - IV*math.sqrt(time/365)
+    #d2 = 0.2928
+    if type == "P":
+        opt_cost = stats.norm.cdf(-d2) * strike * math.exp(-interest * time/365) - stats.norm.cdf(-d1) * value
+        delta = stats.norm.cdf(d1) - 1
+        theta = -(strike * stats.norm.pdf(d1) * IV) / (2 * math.sqrt(time/365)) + interest * strike * math.exp(-interest * time / 365) * stats.norm.cdf(-d2)
+    elif type == "C":
+        opt_cost = stats.norm.cdf(d1) * value - stats.norm.cdf(d2) * strike * math.exp(-interest * time/365)
+        delta = stats.norm(d1) 
+        theta = -(strike * stats.norm.pdf(d1) * IV) / (2 * math.sqrt(time/365)) - interest * strike * math.exp(-interest*time/365) * stats.norm.cdf(d2)
 
-    print("Temp")
-    return
+    gamma = stats.norm.pdf(d1) / (value * IV * math.sqrt(time/365))
+    vega = value * stats.norm.pdf(d1) * math.sqrt(time/365)
+
+    option_info.symbol = symbol
+    option_info.type = type
+    option_info.price = round(opt_cost, 2)
+    option_info.strike = strike
+    option_info.dte = time
+    option_info.delta = round(delta, 3)
+    option_info.gamma = gamma
+    option_info.vega = round((vega / 100), 4)
+    option_info.theta = round((theta / 365), 4)
+
+    return option_info
   
 def impv_rel(Folder, OPTData, EODData, VIXData, maxdte):
     """Runs a regression to find a way to correlate VIX prices to option prices.
@@ -333,6 +363,7 @@ class OPTION:
     def __init__(self):
         self.symbol = None
         self.type = None
+        self.price = None
         self.strike = None
         self.dte =  None
         self.delta = None
@@ -340,5 +371,8 @@ class OPTION:
         self.vega = None
         self.theta = None
 
-    def __repr__(self):
-        print(self.symbol + self.type + " at " + self.strike)
+    def __str__(self):
+        if self.type == "C":    
+            return (self.symbol + " call option at a strike of $" + str(self.strike) + " with " + str(self.dte) + " days until expiration has a value of $" + str(self.price))
+        elif self.type == "P":
+            return (self.symbol + " put option at a strike of $" + str(self.strike) + " with " + str(self.dte) + " days until expiration has a value of $" + str(self.price))
