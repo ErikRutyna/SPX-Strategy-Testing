@@ -5,7 +5,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 from numpy.core.function_base import linspace
 from scipy import stats
-from pathlib import Path
 from datetime import date
 
 def black_scholes(symbol, value, strike, interest, time, IV, type):
@@ -29,7 +28,7 @@ def black_scholes(symbol, value, strike, interest, time, IV, type):
         Strike price for the option
 
     interest : float 
-        Risk-free rate of return measured using the 10-year US bond annual rate of return
+        Risk-free rate of return measured using the 10-year US bond annual rate of return (^TNX)
 
     time : float
         Number of days until expiration which is converted into years in the formula
@@ -148,8 +147,6 @@ def impv_rel(Folder, OPTData, EODData, VIXData, maxdte):
             impvCol = iCol
 
 
-    securityName = OPTData[1][symbCol][0:OPTData[1][symbCol].find(" ")]
-
     # All relevant information for the options contracts
     optionsInfo = []
     VIXIndex = 0
@@ -212,7 +209,7 @@ def impv_rel(Folder, OPTData, EODData, VIXData, maxdte):
 
     # Make our linear regressions, then remove outliers - runs a few times to trim off fat
     # Could probably improve this method of multi-regression, but for now it "works"
-    trimMultiplier = [5, 3, 2, 1.5, 1.33]
+    trimMultiplier = [4, 3, 2, 1.5, 1.33]
 
     for iReg in range(len(trimMultiplier)):
         bestFits = [[] for i in range(DTE-1)]
@@ -231,21 +228,21 @@ def impv_rel(Folder, OPTData, EODData, VIXData, maxdte):
     for iRow in range(len(IMPV)):
             bestFits[iRow] = stats.linregress(VIX[iRow], IMPV[iRow])
 
-    # Then plot it
-    for iRow in range((len(IMPV))):
-        titletext = securityName + " puts' IV with %s DTE" % str(iRow+1)
-        X = linspace(min(VIX[iRow]), max(VIX[iRow]), len(VIX[iRow]))
-        Y = []
-        for i in range(len(VIX[iRow])):
-            Y.append(bestFits[iRow].slope * X[i] + bestFits[iRow].intercept)
-        plt.figure()
-        plt.plot(VIX[iRow], IMPV[iRow],"o",color="black")
-        plt.plot(X, Y, color="red")
-        plt.title(titletext)
-        plt.xlabel("VIX Price")
-        plt.ylabel("Implied Volatility")
+    # Then plot it - commented out as you don't need to see it
+    # for iRow in range((len(IMPV))):
+    #     titletext = securityName + " puts' IV with %s DTE" % str(iRow+1)
+    #     X = linspace(min(VIX[iRow]), max(VIX[iRow]), len(VIX[iRow]))
+    #     Y = []
+    #     for i in range(len(VIX[iRow])):
+    #         Y.append(bestFits[iRow].slope * X[i] + bestFits[iRow].intercept)
+    #     plt.figure()
+    #     plt.plot(VIX[iRow], IMPV[iRow],"o",color="black")
+    #     plt.plot(X, Y, color="red")
+    #     plt.title(titletext)
+    #     plt.xlabel("VIX Price")
+    #     plt.ylabel("Implied Volatility")
 
-    plt.show(block=True)
+    # plt.show(block=True)
 
     return bestFits
 
