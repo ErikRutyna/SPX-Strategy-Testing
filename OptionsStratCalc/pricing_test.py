@@ -1,4 +1,3 @@
-from yahoo_fin import stock_info as si
 from scipy import stats
 import optionsCalc as OC
 import csv
@@ -42,6 +41,7 @@ def spy_iv_adjust():
     LiveData = np.array(LIVEDATA[1:])
     LiveData = LiveData.astype(np.float)
 
+    # The 10-year bond had return of 1.56% when live data was gathered in May '21
     RFRR = 0.0156
     symbol = "SPY"
     type = "P"
@@ -129,12 +129,12 @@ def spy_iv_adjust():
         QuotedPrice = QuotedPrice[index]
 
         # Plots the value of the adjusted option compared to the quoted
-        titletext = str(iDTE+1) + " DTE"
-        plt.figure()
-        plt.plot(Moneyness, BSCalcPriceAdj, color="blue")
-        plt.plot(Moneyness, VIXCalcPriceAdj, color="red")
-        plt.plot(Moneyness, QuotedPrice, color="black")
-        plt.title(titletext)
+    #     titletext = str(iDTE+1) + " DTE"
+    #     plt.figure()
+    #     plt.plot(Moneyness, BSCalcPriceAdj, color="blue")
+    #     plt.plot(Moneyness, VIXCalcPriceAdj, color="red")
+    #     plt.plot(Moneyness, QuotedPrice, color="black")
+    #     plt.title(titletext)
 
-    plt.show(block=True)
+    # plt.show(block=True)
     return VIXFit

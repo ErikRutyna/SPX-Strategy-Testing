@@ -3,9 +3,9 @@ import csv
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-from numpy.core.function_base import linspace
 from scipy import stats
 from datetime import date
+from numpy.core.function_base import linspace
 
 def black_scholes(symbol, value, strike, interest, time, IV, type):
     """Calculates the fair market value of an option using the Black-Scholes formula.

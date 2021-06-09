@@ -81,3 +81,4 @@ def tickerDataCleaner_yh(FileName):
             writer.writerow(line)
 
     print("Done writing, please spot check final output file!")
+    return
