@@ -4,7 +4,6 @@ import math
 import datetime
 import matplotlib.pyplot as plt
 import optionsCalc as OC
-import pricing_test as ivadj
 from scipy import stats
 
 def PCS_SPY(TradeNumbers, StartDate, DataFiles, IVAdjust):
@@ -28,7 +27,7 @@ def PCS_SPY(TradeNumbers, StartDate, DataFiles, IVAdjust):
         List of data files that contain the historical data
 
     IVAdjust : list 
-        List of linear regressions to update IV based upon like market data correlation
+        List of linear regressions to update IV based upon live market data correlation
 
     Returns
     -------
@@ -44,9 +43,6 @@ def PCS_SPY(TradeNumbers, StartDate, DataFiles, IVAdjust):
     SPYPrices = "spy_historical_data"
     VIXPrices = "vix_historical_data"
     IVFits = OC.impv_rel(Folder, SPYData, SPYPrices, VIXPrices, 8)
-
-    # SPY IV Adjuster
-    #VIXAdj = ivadj.spy_iv_adjust()
 
     # Output array
     StratInfo = np.zeros([8,1])
@@ -80,8 +76,12 @@ def PCS_SPY(TradeNumbers, StartDate, DataFiles, IVAdjust):
     del VIXHist
     del TNXHist
 
-    # Forces the trades to begin on a M-W-F cycle, might skip 1 trade ¯\_(ツ)_/¯
-    Offset = 1
+    Offset = 0
+    # Forces the trades to begin on the start date, and then adjust to the M-W-F cycle
+    DateIndex = str(StartDate.strftime("%Y")) + str(StartDate.strftime("%m")) + str(StartDate.strftime("%d"))
+    for iDate in range(len(SPYHistorical)):
+        if SPYHistorical[iDate][SPYDateCol] == DateIndex: Offset = iDate; break
+    
     if StartDate.strftime("%a") == "Tue" or "Thu" or "Sun":
         Offset +=1
     elif StartDate.strftime("%a") == "Sat":
@@ -92,15 +92,14 @@ def PCS_SPY(TradeNumbers, StartDate, DataFiles, IVAdjust):
     VIXHistorical = np.array(VIXHistorical[1:])
     TNXHistorical = np.array(TNXHistorical[1:])
 
-    # Buy-And-Hold Approach
-    NumberShares = round(TradeNumbers[0] / float(SPYHistorical[0][SPYOpenCol]))
-
 
     position = False
     # Outer loop that runs from the start date to the final date
-    for iDate in range(Offset-1, len(TNXHistorical)-1):
+    for iDate in range(Offset, len(TNXHistorical)-1):
         # Sets the maximum amount that can be risked in any given trade
         MaxRisk = TradeNumbers[0] * TradeNumbers[1]
+        if MaxRisk > 10000:
+            MaxRisk = 10000
 
         # Grab the open/close prices from historical data & linear interpolate
         SPYOpen = float(SPYHistorical[iDate][SPYOpenCol])
@@ -122,7 +121,7 @@ def PCS_SPY(TradeNumbers, StartDate, DataFiles, IVAdjust):
             int(SPYHistorical[iDate][SPYDateCol][4:6]), int(SPYHistorical[iDate][SPYDateCol][6:8])))
 
         # Width
-        Width = 2
+        Width = 1
         # Check to see if there is a position open, if not open the trade
         if position == False:
             # Finds DTE if we're for the MWF trading schedule
@@ -150,8 +149,8 @@ def PCS_SPY(TradeNumbers, StartDate, DataFiles, IVAdjust):
                     break
             
             # # Update the prices of the short and long positions based on their moneyness
-            # ShortPutPrice = ShortPut.price + (VIXAdj[DTE-1].slope * MoneynessShort + VIXAdj[DTE-1].intercept)
-            # LongPutPrice = LongPut.price + (VIXAdj[DTE-1].slope * MoneynessLong + VIXAdj[DTE-1].intercept)
+            # ShortPutPrice = ShortPut.price + (IVAdjust[DTE-1].slope * MoneynessShort + IVAdjust[DTE-1].intercept)
+            # LongPutPrice = LongPut.price + (IVAdjust[DTE-1].slope * MoneynessLong + IVAdjust[DTE-1].intercept)
             
             # Net Credit of the spread
             NetCredit = abs(round(ShortPut.price - LongPut.price, 2))
@@ -165,8 +164,21 @@ def PCS_SPY(TradeNumbers, StartDate, DataFiles, IVAdjust):
             # Date the spread must be closed by
             DateForceClose = CurrentDay + datetime.timedelta(days=DTE)
 
+            # Date the spread was opened to check for # of day trades
+            DateOpened = CurrentDay
+
             # Assume a position is open and update it 
             position = True
+            StratInfo[1] += 1
+
+            # Account for brokerage comissions
+            Comissions = 2 * NumberSpreads
+            if NumberSpreads > 10:
+                Comissions = 20
+            StratInfo[2] += Comissions
+
+            # Debit to close at
+            ClosingAmount = (1 - TradeNumbers[3]) * NetCredit
 
         # Now that a position is open we need to go through intraday and check
         # to see if that position needs to be closed, and update balances accordingly
@@ -191,48 +203,57 @@ def PCS_SPY(TradeNumbers, StartDate, DataFiles, IVAdjust):
                 # MoneynessLongIntraday = (Strike-Width) - SPYPrice
 
                 # if DTE == 0: 
-                #     ShortPutIntradayPrice = ShortPutIntraday.price + (VIXAdj[0].slope * MoneynessShortIntraday + VIXAdj[0].intercept)
-                #     LongPutIntradayPrice = LongPutIntraday.price + (VIXAdj[0].slope * MoneynessLongIntraday + VIXAdj[0].intercept)
+                #     ShortPutIntradayPrice = ShortPutIntraday.price + \
+                # (VIXAdj[0].slope * MoneynessShortIntraday + VIXAdj[0].intercept)
+                #     LongPutIntradayPrice = LongPutIntraday.price + \
+                # (VIXAdj[0].slope * MoneynessLongIntraday + VIXAdj[0].intercept)
                 # elif DTE != 0:
-                #     ShortPutIntradayPrice = ShortPutIntraday.price + (VIXAdj[DTE-1].slope * MoneynessShortIntraday + VIXAdj[DTE-1].intercept)
-                #     LongPutIntradayPrice = LongPutIntraday.price + (VIXAdj[DTE-1].slope * MoneynessLongIntraday + VIXAdj[DTE-1].intercept)
+                #     ShortPutIntradayPrice = ShortPutIntraday.price + \
+                # (VIXAdj[DTE-1].slope * MoneynessShortIntraday + VIXAdj[DTE-1].intercept)
+                #     LongPutIntradayPrice = LongPutIntraday.price + \
+                # (VIXAdj[DTE-1].slope * MoneynessLongIntraday + VIXAdj[DTE-1].intercept)
 
                 ClosingDebit =  abs(round(ShortPutIntraday.price - LongPutIntraday.price, 2))
 
                 # Checkt to see if the position has made enough credit via theta-decay to 
                 # close the position and update balances and such
-                if ClosingDebit <= (TradeNumbers[3] * NetCredit) or ((CurrentDay == DateForceClose) and iIntraday == len(SPYIntraday)):
+                if ClosingDebit < ClosingAmount or (((CurrentDay == DateForceClose) and\
+                     iIntraday == len(SPYIntraday))) or ClosingDebit == 0.01:
+
+                    # Day trade check - uncomment to disable day trades and 
+                    # force closing on different day than opening
+                    if CurrentDay == DateOpened:
+                        break
 
                     # Close the position
                     position = False
 
+                    # Check if closed on the opening day - then it was a day trade
+                    if CurrentDay == DateOpened:
+                        StratInfo[3] +=1
+
                     # If we're at DTE = 0 & hit the end of intra day and still haven't closed, then it is
                     # a partial/maximum loss trade
-                    if DTE == 0 and iIntraday == len(SPYIntraday):
+                    if (DTE == 0 and iIntraday == len(SPYIntraday)):
                         
                         # Check for maximum loss trade
-                        if SPYIntraday[iIntraday] <= (Strike-1):
+                        if SPYIntraday[iIntraday] <= (Strike-Width):
                             # Add one to the maximum loss counter
-                            StratInfo[4] += 1 
-                            # Account for comissions w/ opening/closing
-                            Comissions = 2
+                            StratInfo[4] += 1
                             # Subtract the total risked amount from the account balance
                             TradeNumbers[0] = TradeNumbers[0] - (SpreadRisk * NumberSpreads - Comissions)
-                            StratInfo[2] += Comissions
+
 
                         # Check for partially lost trades
-                        elif SPYIntraday[iIntraday] < (Strike) and SPYIntraday[iIntraday] >= (Strike-1):
+                        elif SPYIntraday[iIntraday] < (Strike) and SPYIntraday[iIntraday] >= (Strike-Width):
                             # Add one to the partial loss counter
-                            StratInfo[3] +=1
-                            # Account for comissions w/ opening/closing
-                            Comissions = 2
+                            StratInfo[5] +=1
                             # Check to see if any revenue was made
                             Revenue = NumberSpreads * (NetCredit - ClosingDebit)
                             if Revenue <= 0: Taxes = 0 
                             elif Revenue > 0: Taxes = Revenue * 0.33
                             # Add the revnue to the account balance
                             TradeNumbers[0] = TradeNumbers[0] + (Revenue - Taxes - Comissions)
-                            StratInfo[2] += Comissions
                             StratInfo[6] += Taxes
                         
                     # If neither of those losses are met, then we've made maximum profit
@@ -240,9 +261,7 @@ def PCS_SPY(TradeNumbers, StartDate, DataFiles, IVAdjust):
                         # Update various balances and check for things like losses and/or day trades
                         Revenue =  NumberSpreads * (NetCredit - ClosingDebit) * 100
                         Taxes = Revenue * 0.33
-                        Comissions = 2
                         TradeNumbers[0] = TradeNumbers[0] + (Revenue -  Taxes - Comissions)
-                        StratInfo[2] += Comissions
                         StratInfo[6] += Taxes
                         break
 
@@ -250,6 +269,15 @@ def PCS_SPY(TradeNumbers, StartDate, DataFiles, IVAdjust):
         if DTE > 0:
             DTE -= 1
     
-    StratInfo[0] = TradeNumbers[0]
-    StratInfo[7] = NumberShares * SPYClose
+    # Total profit from all the trading
+    StratInfo[0] = round(TradeNumbers[0], 2)
+
+    # Total taxes from all the trading
+    StratInfo[6] = round(float(StratInfo[6]), 2)
+
+    # Used to back-calculate SPY w/ dividends and such, either one works but the latter does customs numbers
+    # https://www.dividendchannel.com/drip-returns-calculator/
+    # https://www.portfoliovisualizer.com/backtest-portfolio#analysisResults
+    StratInfo[7] = 12530
+    
     return StratInfo

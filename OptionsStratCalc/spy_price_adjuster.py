@@ -5,7 +5,7 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 
-def spy_iv_adjust():
+def spy_price_adjust():
     """Runs a linear regression to adjust IV to accurately match market option prices for SPY.
 
     Extended Summary
