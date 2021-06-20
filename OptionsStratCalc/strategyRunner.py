@@ -1,8 +1,7 @@
 import os
 import numpy as np
 import datetime 
-import spy_price_adjuster as PA
-import backtesting as BT
+import backtesting_strats as BT
 
 # Data files of SPY historical information
 Folder = r"C:\Users\Erik\Desktop\devMisc\OptionsCalc\MasterData"
@@ -19,23 +18,21 @@ DataFiles = [SPYData, VIXData, TNXData]
 # Initial Financial Info
 InitialBalance =  3000
 MaxRisk = 0.1
-Delta = [0.5]
-ClosingPercent = [0.5]
+Delta = [0.3]
+ClosingPercent = [0.75]
 
 # Start date - must be after Jan '11 for MWF SPY options
 # Earliest date is 2010-01-04
-StartDate = datetime.datetime(2010, 1, 3)
-
-# IV Adjustments from the live data
-IVAdj = PA.spy_price_adjust()
+StartDate = datetime.datetime(2020, 1, 3)
 
 for i in range(len(Delta)):
     for j in range(len(ClosingPercent)):
         Conditions = np.array([InitialBalance, MaxRisk, Delta[i], ClosingPercent[j]])
-        Results = BT.PCS_SPY(Conditions, StartDate, DataFiles, IVAdj)
+        Results = BT.PCS_SPY(Conditions, StartDate, DataFiles)
 
 print("The final profit from backtesting with a \u0394-value: {0} and closing at {1}% is: ${2}".format(Delta[i], (100*ClosingPercent[j]), float(Results[0])))
 print("The total number of trades is: {0}".format(int(Results[1])))
+print("The total amount of spreads traded is: {0}".format(int(Results[8])))
 print("The total amount spent in comissions is: {0}".format(int(Results[2])))
 print("The total number of day trades is: {0}".format(int(Results[3])))
 print("The number of trades fully lost is: {0}".format(int(Results[4])))

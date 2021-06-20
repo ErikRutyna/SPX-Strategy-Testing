@@ -4,9 +4,10 @@ import math
 import datetime
 import matplotlib.pyplot as plt
 import optionsCalc as OC
+import historical_price_adj as hpa
 from scipy import stats
 
-def PCS_SPY(TradeNumbers, StartDate, DataFiles, IVAdjust):
+def PCS_SPY(TradeNumbers, StartDate, DataFiles):
     """Runs the profit/account balances of selling short term credit spreads on symbols w/ 3x weekly options.
 
     Extended Summary
@@ -44,8 +45,11 @@ def PCS_SPY(TradeNumbers, StartDate, DataFiles, IVAdjust):
     VIXPrices = "vix_historical_data"
     IVFits = OC.impv_rel(Folder, SPYData, SPYPrices, VIXPrices, 8)
 
+    # Create our price adjuster for the historical pricings
+    PricingCoeffs = hpa.historicalPriceAdj()
+
     # Output array
-    StratInfo = np.zeros([8,1])
+    StratInfo = np.zeros([9,1])
 
     # Read in our Data Files and look for the columns that represent Dates, Open, and Close prices
     with open(DataFiles[0]) as SPYHist:
@@ -92,7 +96,7 @@ def PCS_SPY(TradeNumbers, StartDate, DataFiles, IVAdjust):
     VIXHistorical = np.array(VIXHistorical[1:])
     TNXHistorical = np.array(TNXHistorical[1:])
 
-
+    # Initialize our current open position
     position = False
     # Outer loop that runs from the start date to the final date
     for iDate in range(Offset, len(TNXHistorical)-1):
@@ -140,20 +144,26 @@ def PCS_SPY(TradeNumbers, StartDate, DataFiles, IVAdjust):
 
                 # Short option strike > Long option strike by 1
                 ShortPut = OC.black_scholes("SPY", SPYOpen, Strike, TNXOpen/100, DTE, IV/100, "P")
-                # MoneynessShort = Strike - SPYOpen
+                MoneynessShort = Strike - SPYOpen
                 LongPut = OC.black_scholes("SPY", SPYOpen, Strike-Width, TNXOpen/100, DTE, IV/100, "P")
-                # MoneynessLong = (Strike-Width) - SPYOpen
+                MoneynessLong = (Strike-Width) - SPYOpen
 
                 # If we are less than our Delta amount, exit the loop as the spread meets requirements
                 if abs(ShortPut.delta) <= TradeNumbers[2]:
                     break
             
-            # # Update the prices of the short and long positions based on their moneyness
-            # ShortPutPrice = ShortPut.price + (IVAdjust[DTE-1].slope * MoneynessShort + IVAdjust[DTE-1].intercept)
-            # LongPutPrice = LongPut.price + (IVAdjust[DTE-1].slope * MoneynessLong + IVAdjust[DTE-1].intercept)
+            # Grab differences in prices from the historical data
+            PriceDiffShort = PricingCoeffs[CurrentDay.year-2010][DTE-1][0] * \
+                 np.exp(-PricingCoeffs[CurrentDay.year-2010][DTE-1][1] * MoneynessShort**2 * 0.5) / (2*np.pi)
+            PriceDiffLong = PricingCoeffs[CurrentDay.year-2010][DTE-1][0] * \
+                 np.exp(-PricingCoeffs[CurrentDay.year-2010][DTE-1][1] * MoneynessLong**2 * 0.5) / (2*np.pi)
             
+            # Apply the differences to the short and long put price options
+            ShortPrice = ShortPut.price - PriceDiffShort
+            LongPrice = LongPut.price -  PriceDiffLong
+
             # Net Credit of the spread
-            NetCredit = abs(round(ShortPut.price - LongPut.price, 2))
+            NetCredit = abs(round(ShortPrice - LongPrice, 2))
 
             # Defined risk = Width - Credit
             SpreadRisk = (Width-NetCredit) * 100
@@ -176,6 +186,7 @@ def PCS_SPY(TradeNumbers, StartDate, DataFiles, IVAdjust):
             if NumberSpreads > 10:
                 Comissions = 20
             StratInfo[2] += Comissions
+            StratInfo[8] += NumberSpreads
 
             # Debit to close at
             ClosingAmount = (1 - TradeNumbers[3]) * NetCredit
