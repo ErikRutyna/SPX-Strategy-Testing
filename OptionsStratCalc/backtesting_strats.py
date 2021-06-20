@@ -36,7 +36,7 @@ def PCS_SPY(TradeNumbers, StartDate, DataFiles):
         Array containing the following information:
         [final account balance, number of trades, amount spent in comissions, ...
         number of day trades, number of trades fully lost, number of trades partially lost, ...
-        amount spent on taxes, final account balance if bought and held SPY]
+        amount spent on taxes, final account balance if bought and held SPY, number of spreads traded]
     """
     # Create linear regression functions that map VIX -> IV for different DTEs, [1-7]
     Folder = r"C:\Users\Erik\Desktop\devMisc\OptionsCalc\MasterData"
@@ -165,6 +165,10 @@ def PCS_SPY(TradeNumbers, StartDate, DataFiles):
             # Net Credit of the spread
             NetCredit = abs(round(ShortPrice - LongPrice, 2))
 
+            # Check to see if the spread is even worth taking on
+            if (100*NetCredit) < 10:
+                continue
+
             # Defined risk = Width - Credit
             SpreadRisk = (Width-NetCredit) * 100
 
@@ -191,6 +195,7 @@ def PCS_SPY(TradeNumbers, StartDate, DataFiles):
             # Debit to close at
             ClosingAmount = (1 - TradeNumbers[3]) * NetCredit
 
+
         # Now that a position is open we need to go through intraday and check
         # to see if that position needs to be closed, and update balances accordingly
         if position == True:
@@ -202,37 +207,42 @@ def PCS_SPY(TradeNumbers, StartDate, DataFiles):
                 if DTE == 0:
                     IV = IVFits[0].slope * VIXIntraday[iIntraday] + IVFits[0].intercept
                     TTE = 1 - iIntraday/14
-                elif DTE != 0:
-                    TTE = DTE - (iIntraday/14) 
+                else:
+                    TTE = DTE + (iIntraday/14) 
                     IV = IVFits[DTE-1].slope * VIXIntraday[iIntraday] + IVFits[DTE-1].intercept
                 
                 # Calculate the new current value of the spread and check to see if we can close it
                 ShortPutIntraday = OC.black_scholes("SPY", SPYPrice, Strike, RFRR/100, TTE, IV/100, "P")
                 LongPutIntraday = OC.black_scholes("SPY", SPYPrice, Strike-Width, RFRR/100, TTE, IV/100, "P")
                 
-                # MoneynessShortIntraday = Strike - SPYPrice
-                # MoneynessLongIntraday = (Strike-Width) - SPYPrice
+                MoneynessIntradayShort = Strike - SPYPrice
+                MoneynessIntradayLong = (Strike-Width) - SPYPrice
 
-                # if DTE == 0: 
-                #     ShortPutIntradayPrice = ShortPutIntraday.price + \
-                # (VIXAdj[0].slope * MoneynessShortIntraday + VIXAdj[0].intercept)
-                #     LongPutIntradayPrice = LongPutIntraday.price + \
-                # (VIXAdj[0].slope * MoneynessLongIntraday + VIXAdj[0].intercept)
-                # elif DTE != 0:
-                #     ShortPutIntradayPrice = ShortPutIntraday.price + \
-                # (VIXAdj[DTE-1].slope * MoneynessShortIntraday + VIXAdj[DTE-1].intercept)
-                #     LongPutIntradayPrice = LongPutIntraday.price + \
-                # (VIXAdj[DTE-1].slope * MoneynessLongIntraday + VIXAdj[DTE-1].intercept)
+                # Grab differences in prices from the historical data - must have edge case for 0 DTE
+                if DTE == 0:
+                    PriceDiffIntradayShort = PricingCoeffs[CurrentDay.year-2010][0][0] * \
+                        np.exp(-PricingCoeffs[CurrentDay.year-2010][0][1] * MoneynessIntradayShort**2 * 0.5) / (2*np.pi)
+                    PriceDiffIntradayLong = PricingCoeffs[CurrentDay.year-2010][0][0] * \
+                        np.exp(-PricingCoeffs[CurrentDay.year-2010][0][1] * MoneynessIntradayLong**2 * 0.5) / (2*np.pi)
+                else:
+                    PriceDiffIntradayShort = PricingCoeffs[CurrentDay.year-2010][DTE-1][0] * \
+                        np.exp(-PricingCoeffs[CurrentDay.year-2010][DTE-1][1] * MoneynessIntradayShort**2 * 0.5) / (2*np.pi)
+                    PriceDiffIntradayLong = PricingCoeffs[CurrentDay.year-2010][DTE-1][0] * \
+                        np.exp(-PricingCoeffs[CurrentDay.year-2010][DTE-1][1] * MoneynessIntradayLong**2 * 0.5) / (2*np.pi)
+                
+                # Apply the differences to the short and long put price options
+                ShortPrice = ShortPutIntraday.price - PriceDiffIntradayShort
+                LongPrice = LongPutIntraday.price -  PriceDiffIntradayLong
 
-                ClosingDebit =  abs(round(ShortPutIntraday.price - LongPutIntraday.price, 2))
+                # Calculate the closing debit - cost the neutralize the position, sell the long and buy back the short
+                ClosingDebit =  abs(round(LongPrice - ShortPrice, 2))
 
-                # Checkt to see if the position has made enough credit via theta-decay to 
-                # close the position and update balances and such
+                # Checkt to see if the position has made enough credit via theta-decay to close the position
                 if ClosingDebit < ClosingAmount or (((CurrentDay == DateForceClose) and\
                      iIntraday == len(SPYIntraday))) or ClosingDebit == 0.01:
 
-                    # Day trade check - uncomment to disable day trades and 
-                    # force closing on different day than opening
+                    # Day trade check
+                    # Uncomment to disable day trades and force closing on different day than opening
                     if CurrentDay == DateOpened:
                         break
 
@@ -277,7 +287,7 @@ def PCS_SPY(TradeNumbers, StartDate, DataFiles):
                         break
 
         # Every time we iterate, go down in DTE
-        if DTE > 0:
+        if DTE > 0 and position:
             DTE -= 1
     
     # Total profit from all the trading
@@ -292,3 +302,14 @@ def PCS_SPY(TradeNumbers, StartDate, DataFiles):
     StratInfo[7] = 12530
     
     return StratInfo
+
+
+
+def OpenSpread():
+
+    return 0
+
+
+def CloseSpread():
+
+    return 0
