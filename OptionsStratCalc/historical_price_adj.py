@@ -91,7 +91,7 @@ def historicalPriceAdj():
 
     # Adds the second-nesting for DTE, and third for the 2 lists of data
     for i in range(len(PriceAdjustments)):
-        Temp = ([[] for _ in range(7)])
+        Temp = ([[] for _ in range(4)])
         for j in range(len(Temp)):
             Temp[j] = [[],[]]
         PriceAdjustments[i] = Temp
@@ -121,7 +121,7 @@ def historicalPriceAdj():
         DTE = (ExprDate - CurrDate).days
 
         # Only working w/ short term derivatives so skip all > weeklys
-        if DTE > 7 or DTE == 0:
+        if DTE > 4 or DTE == 0:
             continue
 
         # Grab out open & close prices for the day and average them to find a middle ground
@@ -174,7 +174,7 @@ def historicalPriceAdj():
 
     YearlyAdjFits = [[] for i in range(12)]
     for i in range(len(YearlyAdjFits)):
-        Temp = [[] for j in range(7)]
+        Temp = [[] for j in range(4)]
         YearlyAdjFits[i] = Temp
 
     for iYear in range(len(PriceAdjustments)):
@@ -199,12 +199,12 @@ def historicalPriceAdj():
             Y = normCurve(X, FinalFit[0], FinalFit[1])
 
             YearlyAdjFits[iYear][iDTE] = FinalFit
-        #     TitleText = "Price adjustments for the year {0} and {1} DTE".format(2010+iYear, iDTE+1)
-        #     # Plot our results
-        #     plt.figure()
-        #     plt.scatter(HeldData[iYear][iDTE][1], HeldData[iYear][iDTE][0], color="black")
-        #     plt.plot(X, Y, color="red")
-        #     plt.title(TitleText)
+            TitleText = "Price adjustments for the year {0} and {1} DTE".format(2010+iYear, iDTE+1)
+            # Plot our results
+            plt.figure()
+            plt.scatter(HeldData[iYear][iDTE][1], HeldData[iYear][iDTE][0], color="black")
+            plt.plot(X, Y, color="red")
+            plt.title(TitleText)
 
-        # plt.show(block=True)
+        plt.show(block=True)
     return YearlyAdjFits

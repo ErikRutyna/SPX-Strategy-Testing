@@ -2,12 +2,11 @@ import numpy as np
 import csv
 import math
 import datetime
-import matplotlib.pyplot as plt
 import optionsCalc as OC
 import historical_price_adj as hpa
-from scipy import stats
 
-def PCS_SPY(TradeNumbers, StartDate, DataFiles):
+
+def PCS_SPY(TradeParameters, StartDate, DataFiles):
     """Runs the profit/account balances of selling short term credit spreads on symbols w/ 3x weekly options.
 
     Extended Summary
@@ -18,7 +17,7 @@ def PCS_SPY(TradeNumbers, StartDate, DataFiles):
 
     Parameters
     ----------
-    TradeNumbers : np.array
+    TradeParameters : np.array
         [account balance, maximum risk % per trade, delta-value, credit recieved closing %]
 
     StartDate : datetime
@@ -32,7 +31,7 @@ def PCS_SPY(TradeNumbers, StartDate, DataFiles):
 
     Returns
     -------
-    StratInfo : np.array
+    BacktestResults : np.array
         Array containing the following information:
         [final account balance, number of trades, amount spent in comissions, ...
         number of day trades, number of trades fully lost, number of trades partially lost, ...
@@ -49,7 +48,7 @@ def PCS_SPY(TradeNumbers, StartDate, DataFiles):
     PricingCoeffs = hpa.historicalPriceAdj()
 
     # Output array
-    StratInfo = np.zeros([9,1])
+    BacktestResults = np.zeros([9,1])
 
     # Read in our Data Files and look for the columns that represent Dates, Open, and Close prices
     with open(DataFiles[0]) as SPYHist:
@@ -82,7 +81,8 @@ def PCS_SPY(TradeNumbers, StartDate, DataFiles):
 
     Offset = 0
     # Forces the trades to begin on the start date, and then adjust to the M-W-F cycle
-    DateIndex = str(StartDate.strftime("%Y")) + str(StartDate.strftime("%m")) + str(StartDate.strftime("%d"))
+    DateIndex = str(StartDate.strftime("%Y"))\
+         + str(StartDate.strftime("%m")) + str(StartDate.strftime("%d"))
     for iDate in range(len(SPYHistorical)):
         if SPYHistorical[iDate][SPYDateCol] == DateIndex: Offset = iDate; break
     
@@ -97,11 +97,17 @@ def PCS_SPY(TradeNumbers, StartDate, DataFiles):
     TNXHistorical = np.array(TNXHistorical[1:])
 
     # Initialize our current open position
-    position = False
+    Position = False
+
+    # Comissions and fees per spread from using Tastyworks
+    Comissions = 2
+    Fees = 0.27
+
     # Outer loop that runs from the start date to the final date
     for iDate in range(Offset, len(TNXHistorical)-1):
+
         # Sets the maximum amount that can be risked in any given trade
-        MaxRisk = TradeNumbers[0] * TradeNumbers[1]
+        MaxRisk = TradeParameters[0] * TradeParameters[1]
         if MaxRisk > 10000:
             MaxRisk = 10000
 
@@ -122,194 +128,301 @@ def PCS_SPY(TradeNumbers, StartDate, DataFiles):
 
         # Get the current day to check for DTE
         CurrentDay = (datetime.datetime(int(SPYHistorical[iDate][SPYDateCol][0:4]), 
-            int(SPYHistorical[iDate][SPYDateCol][4:6]), int(SPYHistorical[iDate][SPYDateCol][6:8])))
+            int(SPYHistorical[iDate][SPYDateCol][4:6]),
+            int(SPYHistorical[iDate][SPYDateCol][6:8])))
 
-        # Width
+        # Width of spread
         Width = 1
-        # Check to see if there is a position open, if not open the trade
-        if position == False:
-            # Finds DTE if we're for the MWF trading schedule
-            if CurrentDay.strftime("%a") == "Mon" or "Wed":
-                DTE = 2
-            elif CurrentDay.strftime("%a") == "Fri":
-                DTE = 3
+        
+        # Finds DTE if we're for the MWF trading schedule and the position is currently closed
+        # Only resets to MWF position if we have no open positions and it is one of those 3 days
+        if (CurrentDay.strftime("%a") == "Mon" or "Wed") and (Position == False):
+            DTE = 2
+        elif (CurrentDay.strftime("%a") == "Fri") and (Position == False):
+            DTE = 3
+        else:
+            continue
+
+        # Inner loop that goes throughout the days
+        for iIntraday in range(len(SPYIntraday)):
+
+            # If the position is currently close (false), open a position
+            if Position == False:
+                Credit, Risk, Position, Strike = OpenPCSSPY(CurrentDay.year, DTE, SPYIntraday[iIntraday],\
+                     VIXIntraday[iIntraday], TNXIntraday[iIntraday], TradeParameters[2], Width,\
+                         IVFits, PricingCoeffs, iIntraday)
+
+                # Check the date that the spread was opened and find force close by date
+                DateOpened = CurrentDay
+                DateForceClose = CurrentDay + datetime.timedelta(days=DTE)
+
+                # Maximum number of spreads is limited by the risk of each spread
+                NumberSpreads = math.floor(MaxRisk / Risk)
+                BacktestResults[8] += NumberSpreads
+
+                # Total amount of comission and fees to be paid
+                TotalFees = NumberSpreads * (Comissions + Fees)
+                BacktestResults[2] += TotalFees
+
+            # Else if it is already open, check to see if it can be closed by checking out closing criteria
             else:
-                continue
+                # Three unique sets of closing criteria:
+                # 1 - The spread has reached our desired cutoff point of profit to be made
+                # 2 - It is date forced closed and we've made partial profit/loss (final SPY price is between strikes of short & long)
+                # 3 - It is date forced close and we've hit maximum loss (SPY is below strike of the long)
 
-            # Start at-the-money and begin to go down in strike to find a short option
-            for iShort in range(100):
-                # Grab the necessary information for calculating price on BS
-                Strike = math.floor(SPYOpen)-iShort
-                IV = IVFits[DTE-1].slope * VIXOpen + IVFits[DTE-1].intercept
+                # Day trade limiter - skips closing if we're on the same day that the position was opened
+                if CurrentDay == DateOpened:
+                    continue
 
-                # Short option strike > Long option strike by 1
-                ShortPut = OC.black_scholes("SPY", SPYOpen, Strike, TNXOpen/100, DTE, IV/100, "P")
-                MoneynessShort = Strike - SPYOpen
-                LongPut = OC.black_scholes("SPY", SPYOpen, Strike-Width, TNXOpen/100, DTE, IV/100, "P")
-                MoneynessLong = (Strike-Width) - SPYOpen
-
-                # If we are less than our Delta amount, exit the loop as the spread meets requirements
-                if abs(ShortPut.delta) <= TradeNumbers[2]:
-                    break
-            
-            # Grab differences in prices from the historical data
-            PriceDiffShort = PricingCoeffs[CurrentDay.year-2010][DTE-1][0] * \
-                 np.exp(-PricingCoeffs[CurrentDay.year-2010][DTE-1][1] * MoneynessShort**2 * 0.5) / (2*np.pi)
-            PriceDiffLong = PricingCoeffs[CurrentDay.year-2010][DTE-1][0] * \
-                 np.exp(-PricingCoeffs[CurrentDay.year-2010][DTE-1][1] * MoneynessLong**2 * 0.5) / (2*np.pi)
-            
-            # Apply the differences to the short and long put price options
-            ShortPrice = ShortPut.price - PriceDiffShort
-            LongPrice = LongPut.price -  PriceDiffLong
-
-            # Net Credit of the spread
-            NetCredit = abs(round(ShortPrice - LongPrice, 2))
-
-            # Check to see if the spread is even worth taking on
-            if (100*NetCredit) < 10:
-                continue
-
-            # Defined risk = Width - Credit
-            SpreadRisk = (Width-NetCredit) * 100
-
-            # Maximum number of spreads to fit within our risk profile
-            NumberSpreads = math.floor(MaxRisk / SpreadRisk)
-
-            # Date the spread must be closed by
-            DateForceClose = CurrentDay + datetime.timedelta(days=DTE)
-
-            # Date the spread was opened to check for # of day trades
-            DateOpened = CurrentDay
-
-            # Assume a position is open and update it 
-            position = True
-            StratInfo[1] += 1
-
-            # Account for brokerage comissions
-            Comissions = 2 * NumberSpreads
-            if NumberSpreads > 10:
-                Comissions = 20
-            StratInfo[2] += Comissions
-            StratInfo[8] += NumberSpreads
-
-            # Debit to close at
-            ClosingAmount = (1 - TradeNumbers[3]) * NetCredit
-
-
-        # Now that a position is open we need to go through intraday and check
-        # to see if that position needs to be closed, and update balances accordingly
-        if position == True:
-            # Iterate over the linspace'd open/close prices and check to see if the position is closed
-            for iIntraday in range(len(SPYIntraday)):
-                SPYPrice = SPYIntraday[iIntraday]
-                RFRR = TNXIntraday[iIntraday]
-
-                if DTE == 0:
-                    IV = IVFits[0].slope * VIXIntraday[iIntraday] + IVFits[0].intercept
-                    TTE = 1 - iIntraday/14
                 else:
-                    TTE = DTE + (iIntraday/14) 
-                    IV = IVFits[DTE-1].slope * VIXIntraday[iIntraday] + IVFits[DTE-1].intercept
+                    Debit = ClosePCSSPY(CurrentDay.year, DTE, SPYIntraday[iIntraday],\
+                        VIXIntraday[iIntraday], TNXIntraday[iIntraday],Width,\
+                            IVFits, PricingCoeffs, iIntraday, Strike)
                 
-                # Calculate the new current value of the spread and check to see if we can close it
-                ShortPutIntraday = OC.black_scholes("SPY", SPYPrice, Strike, RFRR/100, TTE, IV/100, "P")
-                LongPutIntraday = OC.black_scholes("SPY", SPYPrice, Strike-Width, RFRR/100, TTE, IV/100, "P")
-                
-                MoneynessIntradayShort = Strike - SPYPrice
-                MoneynessIntradayLong = (Strike-Width) - SPYPrice
+                # The predefined amount of credit recieved we want to close at
+                ClosingDebit = Credit * TradeParameters[3]
 
-                # Grab differences in prices from the historical data - must have edge case for 0 DTE
-                if DTE == 0:
-                    PriceDiffIntradayShort = PricingCoeffs[CurrentDay.year-2010][0][0] * \
-                        np.exp(-PricingCoeffs[CurrentDay.year-2010][0][1] * MoneynessIntradayShort**2 * 0.5) / (2*np.pi)
-                    PriceDiffIntradayLong = PricingCoeffs[CurrentDay.year-2010][0][0] * \
-                        np.exp(-PricingCoeffs[CurrentDay.year-2010][0][1] * MoneynessIntradayLong**2 * 0.5) / (2*np.pi)
-                else:
-                    PriceDiffIntradayShort = PricingCoeffs[CurrentDay.year-2010][DTE-1][0] * \
-                        np.exp(-PricingCoeffs[CurrentDay.year-2010][DTE-1][1] * MoneynessIntradayShort**2 * 0.5) / (2*np.pi)
-                    PriceDiffIntradayLong = PricingCoeffs[CurrentDay.year-2010][DTE-1][0] * \
-                        np.exp(-PricingCoeffs[CurrentDay.year-2010][DTE-1][1] * MoneynessIntradayLong**2 * 0.5) / (2*np.pi)
-                
-                # Apply the differences to the short and long put price options
-                ShortPrice = ShortPutIntraday.price - PriceDiffIntradayShort
-                LongPrice = LongPutIntraday.price -  PriceDiffIntradayLong
+                # Condition 1 - we've hit enough profit to close the spread
+                if Debit < ClosingDebit:
+                    # Total amount of profit
+                    Profit = ((Credit - Debit) * NumberSpreads) * 100
 
-                # Calculate the closing debit - cost the neutralize the position, sell the long and buy back the short
-                ClosingDebit =  abs(round(LongPrice - ShortPrice, 2))
+                    # Total amount paid in taxes
+                    Taxes = Profit * 0.33
 
-                # Checkt to see if the position has made enough credit via theta-decay to close the position
-                if ClosingDebit < ClosingAmount or (((CurrentDay == DateForceClose) and\
-                     iIntraday == len(SPYIntraday))) or ClosingDebit == 0.01:
+                    # Update the amount paid in taxes and the account balance
+                    TradeParameters[0] += (Profit - Taxes - TotalFees)
+                    BacktestResults[0] += (Profit - Taxes - TotalFees)
+                    BacktestResults[6] += Taxes
 
-                    # Day trade check
-                    # Uncomment to disable day trades and force closing on different day than opening
-                    if CurrentDay == DateOpened:
-                        break
+                # Conditions 2 & 3 - we're out of time and need to check for partial/total losses
+                elif (DTE == 0 and iIntraday == 14) or (CurrentDay == DateForceClose and iIntraday == 14):
+                    
+                    # If SPY < long position, then we're at a maximum loss
+                    if SPYIntraday[iIntraday] < (Strike-Width):
+                        # Subtract the risked amount and fees from our currently balance, no taxes though
+                        TradeParameters[0] -= (NumberSpreads * Risk + TotalFees)
+                        BacktestResults[0] -= (NumberSpreads * Risk)
+                        BacktestResults[4] += 1 # Add to total losses counter
 
-                    # Close the position
-                    position = False
+                    # If Long < SPY < Short, then we're at a partial loss
+                    elif SPYIntraday[iIntraday] < Strike and SPYIntraday[iIntraday] > (Strike-Width):
+                        Debit = ClosePCSSPY(CurrentDay.year, DTE, SPYIntraday[iIntraday],\
+                            VIXIntraday[iIntraday], TNXIntraday[iIntraday],Width,\
+                                IVFits, PricingCoeffs, iIntraday, Strike)
 
-                    # Check if closed on the opening day - then it was a day trade
-                    if CurrentDay == DateOpened:
-                        StratInfo[3] +=1
+                        # Total profit, if there is any
+                        Profit = ((Credit - Debit) * NumberSpreads) * 100
 
-                    # If we're at DTE = 0 & hit the end of intra day and still haven't closed, then it is
-                    # a partial/maximum loss trade
-                    if (DTE == 0 and iIntraday == len(SPYIntraday)):
-                        
-                        # Check for maximum loss trade
-                        if SPYIntraday[iIntraday] <= (Strike-Width):
-                            # Add one to the maximum loss counter
-                            StratInfo[4] += 1
-                            # Subtract the total risked amount from the account balance
-                            TradeNumbers[0] = TradeNumbers[0] - (SpreadRisk * NumberSpreads - Comissions)
+                        # Calculate taxes, if there is any
+                        if Profit < 0: Taxes = 0
+                        else: Taxes = Profit * 0.33
 
+                        # Update the amount paid in taxes and the account balance
+                        TradeParameters[0] += (Profit - Taxes - TotalFees)
+                        BacktestResults[0] += (Profit - Taxes - TotalFees)
+                        BacktestResults[5] += 1 # Add to partial trades counter
+                        BacktestResults[6] += Taxes
 
-                        # Check for partially lost trades
-                        elif SPYIntraday[iIntraday] < (Strike) and SPYIntraday[iIntraday] >= (Strike-Width):
-                            # Add one to the partial loss counter
-                            StratInfo[5] +=1
-                            # Check to see if any revenue was made
-                            Revenue = NumberSpreads * (NetCredit - ClosingDebit)
-                            if Revenue <= 0: Taxes = 0 
-                            elif Revenue > 0: Taxes = Revenue * 0.33
-                            # Add the revnue to the account balance
-                            TradeNumbers[0] = TradeNumbers[0] + (Revenue - Taxes - Comissions)
-                            StratInfo[6] += Taxes
-                        
-                    # If neither of those losses are met, then we've made maximum profit
-                    elif SPYIntraday[iIntraday] >= Strike:
-                        # Update various balances and check for things like losses and/or day trades
-                        Revenue =  NumberSpreads * (NetCredit - ClosingDebit) * 100
-                        Taxes = Revenue * 0.33
-                        TradeNumbers[0] = TradeNumbers[0] + (Revenue -  Taxes - Comissions)
-                        StratInfo[6] += Taxes
-                        break
-
-        # Every time we iterate, go down in DTE
-        if DTE > 0 and position:
+        # Continue on to the next day
+        if DTE > 0:
             DTE -= 1
-    
-    # Total profit from all the trading
-    StratInfo[0] = round(TradeNumbers[0], 2)
-
-    # Total taxes from all the trading
-    StratInfo[6] = round(float(StratInfo[6]), 2)
+            
 
     # Used to back-calculate SPY w/ dividends and such, either one works but the latter does customs numbers
     # https://www.dividendchannel.com/drip-returns-calculator/
     # https://www.portfoliovisualizer.com/backtest-portfolio#analysisResults
-    StratInfo[7] = 12530
+    BacktestResults[7] = 12530
     
-    return StratInfo
+    return BacktestResults
+
+def OpenPCSSPY(Year, DTE, Mark, VIX, IR, Delta, Width, IVF, PA, Intraday):
+    """Opens a put credit spread (PCS) on SPY.
+
+    Extended Summary
+    ----------------
+    This function is used to calculate the credit and risk associate with opening a put credit spread on SPY
+    for the given function parameters.
+
+    Parameters
+    ----------
+    Year : int
+        The current year in 4 digit number format.
+
+    DTE : int
+        How many full days until expiration for the spread.
+
+    Mark : float
+        Current trading price of SPY
+
+    VIX : float
+        Current trading price of VIX
+
+    IR : float
+        Current trading price/interest rate of the US 10-year treasury bond (^TNX), used to calculate the RFRR
+
+    Delta : float
+        The guage of closeness to money for the short and long options
+
+    Width : int
+        How many points the strikes are to be spaced out by
+
+    IVF : list
+        A list that contains the relationships to map VIX prices to IV for SPY
+
+    PA : list
+        A list that contains the coefficients to adjust the mathematical Black-Scholes prices to actual market prices
+
+    Intraday : int
+        How far along in the day we are - used to calculate total time until expiration (TTE)
+
+    Returns
+    -------
+    Credit : int
+        The total amount of credit gained before comissions, fees, and taxes
+
+    Risk : int
+        The total amount risked per spread
+
+    Position : boolean
+        Updates the Position boolean to be true
+    """
+    # Total time til expiration that includes intraday
+    TTE = DTE + Intraday/14
+
+    # IV % of the option based upon VIX pricing on that day and time
+    if DTE == 0:
+        IV = IVF[0].slope * VIX + IVF[0].intercept
+    else:
+        IV = IVF[DTE-1].slope * VIX + IVF[DTE-1].intercept
+
+    # Find the closest strike that satisfies our delta requirement
+    for iStrike in range(100):
+        Strike = math.floor(Mark) - iStrike
+        ShortPut = OC.black_scholes("N/A", Mark, Strike, IR/100, TTE, IV, "P")
+
+        # If the delta requirement is met, break the loop
+        if abs(ShortPut.delta) <= Delta:
+            break
+
+    # Now find the long position - our insurance position
+    LongPut = OC.black_scholes("N/A", Mark, Strike - Width, IR/100, TTE, IV, "P")
+
+    # Need moneyness of both options to adjust prices post calculation - this is information
+    # was found by looking at 10 years worth of market data for SPY
+    MoneynessShort = Strike -  Mark
+    MoneynessLong = (Strike -  Width) - Mark
+
+    # Grab the differences in price from our given SPY data samply
+    PriceDiffShort = PA[Year-2010][DTE-1][0]\
+         * np.exp(-PA[Year-2010][DTE-1][1] * MoneynessShort**2 * 0.5) / (2*np.pi)
+    PriceDiffLong = PA[Year-2010][DTE-1][0]\
+         * np.exp(-PA[Year-2010][DTE-1][1] * MoneynessLong**2 * 0.5) / (2*np.pi)
+
+    # Apply our differential
+    PriceShort = ShortPut.price - PriceDiffShort
+    PriceLong = LongPut.price - PriceDiffLong
+
+    # Net Credit for opening the spread
+    Credit = abs(round(PriceShort - PriceLong, 2))
+
+    # Check to see if it is worth opening - comissions & fees don't take away all the profit
+    if (100 * Credit) < 10:
+        return
+
+    # Risk of the spread
+    Risk = (Width - Credit) * 100
+
+    # Update the position so that it is true
+    Position =  True
+
+    return Credit, Risk, Position, Strike
 
 
+def ClosePCSSPY(Year, DTE, Mark, VIX, IR, Width, IVF, PA, Intraday, Strike):
+    """Closes a put credit spread (PCS) on SPY.
 
-def OpenSpread():
+    Extended Summary
+    ----------------
+    This function is used to calculate the debit to close a put credit spread on SPY
+    for the given function parameters.
 
-    return 0
+    Parameters
+    ----------
+    Year : int
+        The current year in 4 digit number format.
 
+    DTE : int
+        How many full days until expiration for the spread.
 
-def CloseSpread():
+    Mark : float
+        Current trading price of SPY
 
-    return 0
+    VIX : float
+        Current trading price of VIX
+
+    IR : float
+        Current trading price/interest rate of the US 10-year treasury bond (^TNX), used to calculate the RFRR
+
+    Delta : float
+        The guage of closeness to money for the short and long options
+
+    Width : int
+        How many points the strikes are to be spaced out by
+
+    IVF : list
+        A list that contains the relationships to map VIX prices to IV for SPY
+
+    PA : list
+        A list that contains the coefficients to adjust the mathematical Black-Scholes prices to actual market prices
+
+    Intraday : int
+        How far along in the day we are - used to calculate total time until expiration (TTE)
+
+    Strike : int
+        Strike for the short position
+
+    Returns
+    -------
+    Credit : int
+        The total amount of credit gained before comissions, fees, and taxes
+
+    Risk : int
+        The total amount risked per spread
+
+    Position : boolean
+        Updates the Position boolean to be true
+    """
+    # Total time til expiration that includes intraday
+    TTE = DTE + Intraday/14
+
+    # IV % of the option based upon VIX pricing on that day and time
+    if DTE == 0:
+        IV = IVF[0].slope * VIX + IVF[0].intercept
+    else:
+        IV = IVF[DTE-1].slope * VIX + IVF[DTE-1].intercept
+
+    # Our short and long positions being recalculated using intraday prices
+    ShortPut = OC.black_scholes("N/A", Mark, Strike, IR/100, TTE, IV, "P")
+    LongPut = OC.black_scholes("N/A", Mark, Strike - Width, IR/100, TTE, IV, "P")
+    
+    # Need moneyness of both options to adjust prices post calculation - this is information
+    # was found by looking at 10 years worth of market data for SPY
+    MoneynessShort = Strike -  Mark
+    MoneynessLong = (Strike -  Width) - Mark
+
+    # Grab the differences in price from our given SPY data samply
+    PriceDiffShort = PA[Year-2010][DTE-1][0]\
+        * np.exp(-PA[Year-2010][DTE-1][1] * MoneynessShort**2 * 0.5) / (2*np.pi)
+    PriceDiffLong = PA[Year-2010][DTE-1][0]\
+        * np.exp(-PA[Year-2010][DTE-1][1] * MoneynessLong**2 * 0.5) / (2*np.pi)
+
+    # Apply our differential
+    PriceShort = ShortPut.price - PriceDiffShort
+    PriceLong = LongPut.price - PriceDiffLong
+
+    # To neutralize the position we need to sell our long and buy back our short
+    Debit = abs(round(PriceLong - PriceShort, 2))
+
+    return Debit

@@ -31,7 +31,7 @@ for i in range(len(Delta)):
         Results = BT.PCS_SPY(Conditions, StartDate, DataFiles)
 
 print("The final profit from backtesting with a \u0394-value: {0} and closing at {1}% is: ${2}".format(Delta[i],\
-     (100*ClosingPercent[j]), round(float(Results[0])-InitialBalance),2))
+     (100*ClosingPercent[j]), round(float(Results[0]),2)))
 print("The total number of trades is: {0}".format(int(Results[1])))
 print("The total amount of spreads traded is: {0}".format(int(Results[8])))
 print("The total amount spent in comissions is: {0}".format(int(Results[2])))

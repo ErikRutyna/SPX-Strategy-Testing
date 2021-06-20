@@ -1,6 +1,10 @@
 import optionsCalc as OC
 import spy_price_adjuster as PA
+import historical_price_adj as HPA
 from yahoo_fin import stock_info as si
+
+Coeff = HPA.historicalPriceAdj()
+
 IVAdjFits = PA.spy_price_adjust()
 
 Folder = r"C:\Users\Erik\Desktop\devMisc\OptionsCalc\MasterData"
