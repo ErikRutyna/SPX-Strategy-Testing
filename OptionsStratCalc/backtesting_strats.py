@@ -44,8 +44,9 @@ def PCS_SPY(TradeParameters, StartDate, DataFiles):
     VIXPrices = "vix_historical_data"
     IVFits = OC.impv_rel(Folder, SPYData, SPYPrices, VIXPrices, 8)
 
-    # Create our price adjuster for the historical pricings
-    PricingCoeffs = hpa.historicalPriceAdj()
+    # # Create our price adjuster for the historical pricings
+    # PricingCoeffs = hpa.historicalPriceAdj()
+    PricingCoeffs = 0
 
     # Output array
     BacktestResults = np.zeros([9,1])
@@ -66,13 +67,13 @@ def PCS_SPY(TradeParameters, StartDate, DataFiles):
         elif SPYHistorical[0][i] == "Close": SPYCloseCol = i; continue
 
     for i in range(len(VIXHistorical[0])):
-        if VIXHistorical[0][i] == "Date": VIXDateCol = i; continue
-        elif VIXHistorical[0][i] == "Open": VIXOpenCol = i; continue
+        # if VIXHistorical[0][i] == "Date": VIXDateCol = i; continue
+        if VIXHistorical[0][i] == "Open": VIXOpenCol = i; continue
         elif VIXHistorical[0][i] == "Close": VIXCloseCol = i; continue
 
     for i in range(len(TNXHistorical[0])):
-        if TNXHistorical[0][i] == "Date": TNXDateCol = i; continue
-        elif TNXHistorical[0][i] == "Open": TNXOpenCol = i; continue
+        # if TNXHistorical[0][i] == "Date": TNXDateCol = i; continue
+        if TNXHistorical[0][i] == "Open": TNXOpenCol = i; continue
         elif TNXHistorical[0][i] == "Close": TNXCloseCol = i; continue
     
     del SPYHist
@@ -140,8 +141,6 @@ def PCS_SPY(TradeParameters, StartDate, DataFiles):
             DTE = 2
         elif (CurrentDay.strftime("%a") == "Fri") and (Position == False):
             DTE = 3
-        else:
-            continue
 
         # Inner loop that goes throughout the days
         for iIntraday in range(len(SPYIntraday)):
@@ -157,12 +156,16 @@ def PCS_SPY(TradeParameters, StartDate, DataFiles):
                 DateForceClose = CurrentDay + datetime.timedelta(days=DTE)
 
                 # Maximum number of spreads is limited by the risk of each spread
+                if Risk == 0: continue # Safety measure to skip trades we don't want, i.e. to small premium
                 NumberSpreads = math.floor(MaxRisk / Risk)
                 BacktestResults[8] += NumberSpreads
 
                 # Total amount of comission and fees to be paid
                 TotalFees = NumberSpreads * (Comissions + Fees)
                 BacktestResults[2] += TotalFees
+
+                # Add one to counter of trades done
+                BacktestResults[1] += 1
 
             # Else if it is already open, check to see if it can be closed by checking out closing criteria
             else:
@@ -172,13 +175,12 @@ def PCS_SPY(TradeParameters, StartDate, DataFiles):
                 # 3 - It is date forced close and we've hit maximum loss (SPY is below strike of the long)
 
                 # Day trade limiter - skips closing if we're on the same day that the position was opened
-                if CurrentDay == DateOpened:
-                    continue
+                # if CurrentDay == DateOpened:
+                #     continue
 
-                else:
-                    Debit = ClosePCSSPY(CurrentDay.year, DTE, SPYIntraday[iIntraday],\
-                        VIXIntraday[iIntraday], TNXIntraday[iIntraday],Width,\
-                            IVFits, PricingCoeffs, iIntraday, Strike)
+                Debit = ClosePCSSPY(CurrentDay.year, DTE, SPYIntraday[iIntraday],\
+                    VIXIntraday[iIntraday], TNXIntraday[iIntraday],Width,\
+                        IVFits, PricingCoeffs, iIntraday, Strike)
                 
                 # The predefined amount of credit recieved we want to close at
                 ClosingDebit = Credit * TradeParameters[3]
@@ -194,7 +196,11 @@ def PCS_SPY(TradeParameters, StartDate, DataFiles):
                     # Update the amount paid in taxes and the account balance
                     TradeParameters[0] += (Profit - Taxes - TotalFees)
                     BacktestResults[0] += (Profit - Taxes - TotalFees)
+                    if CurrentDay == DateOpened: BacktestResults[3] += 1
                     BacktestResults[6] += Taxes
+
+                    # Close the position and prepare to open a new one
+                    Position = False
 
                 # Conditions 2 & 3 - we're out of time and need to check for partial/total losses
                 elif (DTE == 0 and iIntraday == 14) or (CurrentDay == DateForceClose and iIntraday == 14):
@@ -205,6 +211,12 @@ def PCS_SPY(TradeParameters, StartDate, DataFiles):
                         TradeParameters[0] -= (NumberSpreads * Risk + TotalFees)
                         BacktestResults[0] -= (NumberSpreads * Risk)
                         BacktestResults[4] += 1 # Add to total losses counter
+                        
+                        # Close the position and prepare to open a new one
+                        Position = False
+                        print(("On {0} we had a total loss because SPY traded at: ".format(CurrentDay) + \
+                             "{0} and our long-put was at a strike of {1}".format(SPYIntraday[iIntraday], int(Strike-Width))) + \
+                                 " and we lost ${0}".format(int(NumberSpreads * Risk)))
 
                     # If Long < SPY < Short, then we're at a partial loss
                     elif SPYIntraday[iIntraday] < Strike and SPYIntraday[iIntraday] > (Strike-Width):
@@ -224,6 +236,9 @@ def PCS_SPY(TradeParameters, StartDate, DataFiles):
                         BacktestResults[0] += (Profit - Taxes - TotalFees)
                         BacktestResults[5] += 1 # Add to partial trades counter
                         BacktestResults[6] += Taxes
+                                        
+                        # Close the position and prepare to open a new one
+                        Position = False
 
         # Continue on to the next day
         if DTE > 0:
@@ -289,7 +304,7 @@ def OpenPCSSPY(Year, DTE, Mark, VIX, IR, Delta, Width, IVF, PA, Intraday):
         Updates the Position boolean to be true
     """
     # Total time til expiration that includes intraday
-    TTE = DTE + Intraday/14
+    TTE = DTE + (1 - Intraday/14)
 
     # IV % of the option based upon VIX pricing on that day and time
     if DTE == 0:
@@ -300,36 +315,38 @@ def OpenPCSSPY(Year, DTE, Mark, VIX, IR, Delta, Width, IVF, PA, Intraday):
     # Find the closest strike that satisfies our delta requirement
     for iStrike in range(100):
         Strike = math.floor(Mark) - iStrike
-        ShortPut = OC.black_scholes("N/A", Mark, Strike, IR/100, TTE, IV, "P")
+        ShortPut = OC.black_scholes("N/A", Mark, Strike, IR/100, TTE, IV/100, "P")
 
         # If the delta requirement is met, break the loop
         if abs(ShortPut.delta) <= Delta:
             break
 
     # Now find the long position - our insurance position
-    LongPut = OC.black_scholes("N/A", Mark, Strike - Width, IR/100, TTE, IV, "P")
+    LongPut = OC.black_scholes("N/A", Mark, Strike - Width, IR/100, TTE, IV/100, "P")
 
-    # Need moneyness of both options to adjust prices post calculation - this is information
-    # was found by looking at 10 years worth of market data for SPY
-    MoneynessShort = Strike -  Mark
-    MoneynessLong = (Strike -  Width) - Mark
+    # # Need moneyness of both options to adjust prices post calculation - this is information
+    # # was found by looking at 10 years worth of market data for SPY
+    # MoneynessShort = Strike -  Mark
+    # MoneynessLong = (Strike -  Width) - Mark
 
-    # Grab the differences in price from our given SPY data samply
-    PriceDiffShort = PA[Year-2010][DTE-1][0]\
-         * np.exp(-PA[Year-2010][DTE-1][1] * MoneynessShort**2 * 0.5) / (2*np.pi)
-    PriceDiffLong = PA[Year-2010][DTE-1][0]\
-         * np.exp(-PA[Year-2010][DTE-1][1] * MoneynessLong**2 * 0.5) / (2*np.pi)
+    # # Grab the differences in price from our given SPY data samply
+    # PriceDiffShort = PA[Year-2010][DTE-1][0]\
+    #      * np.exp(-PA[Year-2010][DTE-1][1] * MoneynessShort**2 * 0.5) / (2*np.pi)
+    # PriceDiffLong = PA[Year-2010][DTE-1][0]\
+    #      * np.exp(-PA[Year-2010][DTE-1][1] * MoneynessLong**2 * 0.5) / (2*np.pi)
 
-    # Apply our differential
-    PriceShort = ShortPut.price - PriceDiffShort
-    PriceLong = LongPut.price - PriceDiffLong
+    # # Apply our differential
+    # PriceShort = ShortPut.price - PriceDiffShort
+    # PriceLong = LongPut.price - PriceDiffLong
 
     # Net Credit for opening the spread
-    Credit = abs(round(PriceShort - PriceLong, 2))
+    Credit = (round(ShortPut.price - LongPut.price, 2))
 
     # Check to see if it is worth opening - comissions & fees don't take away all the profit
     if (100 * Credit) < 10:
-        return
+        Position = False
+        Risk = 0
+        return Credit, Risk, Position, Strike
 
     # Risk of the spread
     Risk = (Width - Credit) * 100
@@ -395,7 +412,7 @@ def ClosePCSSPY(Year, DTE, Mark, VIX, IR, Width, IVF, PA, Intraday, Strike):
         Updates the Position boolean to be true
     """
     # Total time til expiration that includes intraday
-    TTE = DTE + Intraday/14
+    TTE = DTE + (1 - Intraday/14)
 
     # IV % of the option based upon VIX pricing on that day and time
     if DTE == 0:
@@ -404,25 +421,25 @@ def ClosePCSSPY(Year, DTE, Mark, VIX, IR, Width, IVF, PA, Intraday, Strike):
         IV = IVF[DTE-1].slope * VIX + IVF[DTE-1].intercept
 
     # Our short and long positions being recalculated using intraday prices
-    ShortPut = OC.black_scholes("N/A", Mark, Strike, IR/100, TTE, IV, "P")
-    LongPut = OC.black_scholes("N/A", Mark, Strike - Width, IR/100, TTE, IV, "P")
+    ShortPut = OC.black_scholes("N/A", Mark, Strike, IR/100, TTE, IV/100, "P")
+    LongPut = OC.black_scholes("N/A", Mark, Strike - Width, IR/100, TTE, IV/100, "P")
     
-    # Need moneyness of both options to adjust prices post calculation - this is information
-    # was found by looking at 10 years worth of market data for SPY
-    MoneynessShort = Strike -  Mark
-    MoneynessLong = (Strike -  Width) - Mark
+    # # Need moneyness of both options to adjust prices post calculation - this is information
+    # # was found by looking at 10 years worth of market data for SPY
+    # MoneynessShort = Strike -  Mark
+    # MoneynessLong = (Strike -  Width) - Mark
 
-    # Grab the differences in price from our given SPY data samply
-    PriceDiffShort = PA[Year-2010][DTE-1][0]\
-        * np.exp(-PA[Year-2010][DTE-1][1] * MoneynessShort**2 * 0.5) / (2*np.pi)
-    PriceDiffLong = PA[Year-2010][DTE-1][0]\
-        * np.exp(-PA[Year-2010][DTE-1][1] * MoneynessLong**2 * 0.5) / (2*np.pi)
+    # # Grab the differences in price from our given SPY data samply
+    # PriceDiffShort = PA[Year-2010][DTE-1][0]\
+    #     * np.exp(-PA[Year-2010][DTE-1][1] * MoneynessShort**2 * 0.5) / (2*np.pi)
+    # PriceDiffLong = PA[Year-2010][DTE-1][0]\
+    #     * np.exp(-PA[Year-2010][DTE-1][1] * MoneynessLong**2 * 0.5) / (2*np.pi)
 
-    # Apply our differential
-    PriceShort = ShortPut.price - PriceDiffShort
-    PriceLong = LongPut.price - PriceDiffLong
+    # # Apply our differential
+    # PriceShort = ShortPut.price - PriceDiffShort
+    # PriceLong = LongPut.price - PriceDiffLong
 
     # To neutralize the position we need to sell our long and buy back our short
-    Debit = abs(round(PriceLong - PriceShort, 2))
+    Debit = abs(round(LongPut.price - ShortPut.price, 2))
 
     return Debit

@@ -170,7 +170,7 @@ def historicalPriceAdj():
     PriceAdjustments[0] = PriceAdjustments[1]
 
     # Save a copy of the data for plotting
-    HeldData = copy.deepcopy(PriceAdjustments)
+    # HeldData = copy.deepcopy(PriceAdjustments)
 
     YearlyAdjFits = [[] for i in range(12)]
     for i in range(len(YearlyAdjFits)):
@@ -199,12 +199,12 @@ def historicalPriceAdj():
             Y = normCurve(X, FinalFit[0], FinalFit[1])
 
             YearlyAdjFits[iYear][iDTE] = FinalFit
-            TitleText = "Price adjustments for the year {0} and {1} DTE".format(2010+iYear, iDTE+1)
-            # Plot our results
-            plt.figure()
-            plt.scatter(HeldData[iYear][iDTE][1], HeldData[iYear][iDTE][0], color="black")
-            plt.plot(X, Y, color="red")
-            plt.title(TitleText)
+        #     TitleText = "Price adjustments for the year {0} and {1} DTE".format(2010+iYear, iDTE+1)
+        #     # Plot our results
+        #     plt.figure()
+        #     plt.scatter(HeldData[iYear][iDTE][1], HeldData[iYear][iDTE][0], color="black")
+        #     plt.plot(X, Y, color="red")
+        #     plt.title(TitleText)
 
-        plt.show(block=True)
+        # plt.show(block=True)
     return YearlyAdjFits
