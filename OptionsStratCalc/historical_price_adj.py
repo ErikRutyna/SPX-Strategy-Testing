@@ -1,5 +1,6 @@
 import optionsCalc as OC
 from scipy import optimize
+from scipy import stats
 import csv
 import os
 import matplotlib.pyplot as plt
@@ -158,9 +159,11 @@ def historicalPriceAdj():
             # Now find Black-Scholes W/ IV and price mis-match between calculated and market
             IV = IVFits[DTE-1].slope * VIXAvg + IVFits[DTE-1].intercept
             MyPut = OC.black_scholes("SPY", SPYAvg, Strike, TNXAvg/100, DTE, IV/100, "P")
+            MyPut2 = OC.black_scholes("SPY", SPYAvg, Strike, TNXAvg/100, DTE, (IV-2*abs(Moneyness))/100, "P")
 
             # Difference between the two costs
             PriceDiff = MyPut.price - Price
+            PriceDiff2 = MyPut2.price - Price
 
             # Append the current day's options to the global list
             PriceAdjustments[int(HistPutPrices[index][PutDateCol][2:4])-10][DTE-1][0].append(abs(PriceDiff))
@@ -170,7 +173,7 @@ def historicalPriceAdj():
     PriceAdjustments[0] = PriceAdjustments[1]
 
     # Save a copy of the data for plotting
-    # HeldData = copy.deepcopy(PriceAdjustments)
+    HeldData = copy.deepcopy(PriceAdjustments)
 
     YearlyAdjFits = [[] for i in range(12)]
     for i in range(len(YearlyAdjFits)):
@@ -184,7 +187,19 @@ def historicalPriceAdj():
                 # Fit the function
                 X = np.array(PriceAdjustments[iYear][iDTE][1])
                 Y = np.array(PriceAdjustments[iYear][iDTE][0])
-                coeff, _ = optimize.curve_fit(normCurve, X, Y, p0=[0.1, 1], maxfev=1000000)
+                # coeff, _ = optimize.curve_fit(normCurve, X, Y, p0=[0.1, 1], maxfev=1000000)
+                
+                # Sort the arrays from small to large
+                X = X[np.argsort(X)]
+                Y = Y[np.argsort(X)]
+
+                # Closest index to 0 - the split 
+                SplitIndex = np.argmin(abs(X))
+
+                # Apply two lines of best fit, one for each side of the money
+                OTM = stats.linregress(X[0:SplitIndex], Y[0:SplitIndex])
+                ITM = stats.linregress(X[SplitIndex+1:], Y[SplitIndex+1:])
+
 
                 # Apply our pseudo-trimming/overfitting methodology
                 for i in range(len(PriceAdjustments[iYear][iDTE][0])-1, -1, -1):
@@ -194,17 +209,20 @@ def historicalPriceAdj():
                         del PriceAdjustments[iYear][iDTE][0][i]
 
             # One final regression to get the best fit and slot it into out return list
-            FinalFit, _ = optimize.curve_fit(normCurve, PriceAdjustments[iYear][iDTE][1], PriceAdjustments[iYear][iDTE][0])
-            X = np.linspace(min(PriceAdjustments[iYear][iDTE][1]), max(PriceAdjustments[iYear][iDTE][1]), 100)
-            Y = normCurve(X, FinalFit[0], FinalFit[1])
+            # FinalFit, _ = optimize.curve_fit(normCurve, PriceAdjustments[iYear][iDTE][1], PriceAdjustments[iYear][iDTE][0], p0=[0.1, 1], maxfev=1000000)
 
-            YearlyAdjFits[iYear][iDTE] = FinalFit
-        #     TitleText = "Price adjustments for the year {0} and {1} DTE".format(2010+iYear, iDTE+1)
-        #     # Plot our results
-        #     plt.figure()
-        #     plt.scatter(HeldData[iYear][iDTE][1], HeldData[iYear][iDTE][0], color="black")
-        #     plt.plot(X, Y, color="red")
-        #     plt.title(TitleText)
+            # X = np.linspace(min(PriceAdjustments[iYear][iDTE][1]), max(PriceAdjustments[iYear][iDTE][1]), 100)
+            # Y = normCurve(X, FinalFit[0], FinalFit[1])
 
-        # plt.show(block=True)
+            # YearlyAdjFits[iYear][iDTE] = FinalFit
+
+
+            # Plot our results
+            TitleText = "Price adjustments for the year {0} and {1} DTE".format(2011+iYear, iDTE+1)
+            plt.figure()
+            plt.scatter(HeldData[iYear][iDTE][1], HeldData[iYear][iDTE][0], color="black")
+            plt.plot(X, Y, color="red")
+            plt.title(TitleText)
+
+        plt.show(block=True)
     return YearlyAdjFits

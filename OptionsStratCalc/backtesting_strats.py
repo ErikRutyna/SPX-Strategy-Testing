@@ -35,7 +35,8 @@ def PCS_SPY(TradeParameters, StartDate, DataFiles):
         Array containing the following information:
         [final account balance, number of trades, amount spent in comissions, ...
         number of day trades, number of trades fully lost, number of trades partially lost, ...
-        amount spent on taxes, final account balance if bought and held SPY, number of spreads traded]
+        amount spent on taxes, final account balance if bought and held SPY, number of spreads traded, ...
+        number of times a stop loss saved us from maximum loss]
     """
     # Create linear regression functions that map VIX -> IV for different DTEs, [1-7]
     Folder = r"C:\Users\Erik\Desktop\devMisc\OptionsCalc\MasterData"
@@ -49,7 +50,7 @@ def PCS_SPY(TradeParameters, StartDate, DataFiles):
     PricingCoeffs = 0
 
     # Output array
-    BacktestResults = np.zeros([9,1])
+    BacktestResults = np.zeros([10,1])
 
     # Read in our Data Files and look for the columns that represent Dates, Open, and Close prices
     with open(DataFiles[0]) as SPYHist:
@@ -171,12 +172,13 @@ def PCS_SPY(TradeParameters, StartDate, DataFiles):
             else:
                 # Three unique sets of closing criteria:
                 # 1 - The spread has reached our desired cutoff point of profit to be made
-                # 2 - It is date forced closed and we've made partial profit/loss (final SPY price is between strikes of short & long)
-                # 3 - It is date forced close and we've hit maximum loss (SPY is below strike of the long)
+                # 2 - Stop loss comes into play and it forces the position closed early
+                # 3 - It is date forced closed and we've made partial profit/loss (final SPY price is between strikes of short & long)
+                # 4 - It is date forced close and we've hit maximum loss (SPY is below strike of the long)
 
                 # Day trade limiter - skips closing if we're on the same day that the position was opened
-                # if CurrentDay == DateOpened:
-                #     continue
+                if CurrentDay == DateOpened and TradeParameters[0] < 25001:
+                    continue
 
                 Debit = ClosePCSSPY(CurrentDay.year, DTE, SPYIntraday[iIntraday],\
                     VIXIntraday[iIntraday], TNXIntraday[iIntraday],Width,\
@@ -202,7 +204,18 @@ def PCS_SPY(TradeParameters, StartDate, DataFiles):
                     # Close the position and prepare to open a new one
                     Position = False
 
-                # Conditions 2 & 3 - we're out of time and need to check for partial/total losses
+                # Condition 2 - stop loss kicks in
+                elif Debit > (2.5*Credit):
+
+                    # Buy to close our position and reduce balances
+                    TradeParameters[0] -= (Debit * NumberSpreads + TotalFees)
+                    BacktestResults[0] -= Debit * NumberSpreads
+                    BacktestResults[9] += 1 # Add one to stop loss counter 
+
+                    # Close the position and prepare to open a new one
+                    Position = False
+
+                # Conditions 3 & 4 - we're out of time and need to check for partial/total losses
                 elif (DTE == 0 and iIntraday == 14) or (CurrentDay == DateForceClose and iIntraday == 14):
                     
                     # If SPY < long position, then we're at a maximum loss
@@ -214,9 +227,11 @@ def PCS_SPY(TradeParameters, StartDate, DataFiles):
                         
                         # Close the position and prepare to open a new one
                         Position = False
-                        print(("On {0} we had a total loss because SPY traded at: ".format(CurrentDay) + \
-                             "{0} and our long-put was at a strike of {1}".format(SPYIntraday[iIntraday], int(Strike-Width))) + \
-                                 " and we lost ${0}".format(int(NumberSpreads * Risk)))
+                        S1 = "On " + str(CurrentDay.year) + "-" + str(CurrentDay.month) + "-" + str(CurrentDay.day)
+                        S2 = " we had a total loss because SPY traded at: $" + str(SPYIntraday[iIntraday])
+                        S3 = " and our long-put was at a strike of $" + str(int(Strike-Width))
+                        S4 = " and we lost $" + str(int(NumberSpreads * Risk))
+                        print(S1 +  S2 + S3 + S4)
 
                     # If Long < SPY < Short, then we're at a partial loss
                     elif SPYIntraday[iIntraday] < Strike and SPYIntraday[iIntraday] > (Strike-Width):
