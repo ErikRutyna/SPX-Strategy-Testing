@@ -135,16 +135,10 @@ def impv_rel(Folder, OPTData, EODData, VIXData, maxdte):
     # Grab date & option symbol column, make sure we know what the security is and what
     # column contains dates, option information, and expiration dates
     for iCol in range(len(OPTData[0])):
-        if iCol > len(OPTData[0]):
-            break
-        elif OPTData[0][iCol] == "date":
-            dateCol = iCol
-        elif OPTData[0][iCol] == "symbol":
-            symbCol = iCol
-        elif OPTData[0][iCol] == "exdate":
-            exprCol = iCol
-        elif OPTData[0][iCol] == "impl_volatility":
-            impvCol = iCol
+        if OPTData[0][iCol] == "date": dateCol = iCol; continue
+        elif OPTData[0][iCol] == "symbol": symbCol = iCol; securityName = OPTData[1][symbCol][0:3]; continue
+        elif OPTData[0][iCol] == "exdate": exprCol = iCol; continue
+        elif OPTData[0][iCol] == "impl_volatility": impvCol = iCol; continue
 
 
     # All relevant information for the options contracts
@@ -229,20 +223,20 @@ def impv_rel(Folder, OPTData, EODData, VIXData, maxdte):
             bestFits[iRow] = stats.linregress(VIX[iRow], IMPV[iRow])
 
     # Then plot it - commented out as you don't need to see it
-    # for iRow in range((len(IMPV))):
-    #     titletext = securityName + " puts' IV with %s DTE" % str(iRow+1)
-    #     X = linspace(min(VIX[iRow]), max(VIX[iRow]), len(VIX[iRow]))
-    #     Y = []
-    #     for i in range(len(VIX[iRow])):
-    #         Y.append(bestFits[iRow].slope * X[i] + bestFits[iRow].intercept)
-    #     plt.figure()
-    #     plt.plot(VIX[iRow], IMPV[iRow],"o",color="black")
-    #     plt.plot(X, Y, color="red")
-    #     plt.title(titletext)
-    #     plt.xlabel("VIX Price")
-    #     plt.ylabel("Implied Volatility")
+    for iRow in range((len(IMPV))):
+        titletext = securityName + " puts' IV with %s DTE" % str(iRow+1)
+        X = linspace(min(VIX[iRow]), max(VIX[iRow]), len(VIX[iRow]))
+        Y = []
+        for i in range(len(VIX[iRow])):
+            Y.append(bestFits[iRow].slope * X[i] + bestFits[iRow].intercept)
+        plt.figure()
+        plt.plot(VIX[iRow], IMPV[iRow],"o",color="black")
+        plt.plot(X, Y, color="red")
+        plt.title(titletext)
+        plt.xlabel("VIX Price")
+        plt.ylabel("Implied Volatility")
 
-    # plt.show(block=True)
+    plt.show(block=True)
 
     return bestFits
 
@@ -275,7 +269,7 @@ def strike_extractor(symbol):
 
     if cFlagIndex != -1:
         strike = symbol[(spaceIndex + cFlagIndex + 1):]
-        strike = strike[0:-2] + "." + strike[-2:]
+        strike = strike[0:-3] + "." + strike[-3:]
     elif pFlagIndex != -1:
         strike = symbol[(spaceIndex + pFlagIndex + 1):]
         strike = strike[0:-3] + "." + strike[-3:]
@@ -355,6 +349,162 @@ def tickerDataCleaner(Ticker, FileName):
             writer.writerow(line)
 
     print("Done writing, please spot check final output file!")
+
+def impv_rel_Calls():
+    """Runs a regression to find a way to correlate VIX prices to SPY call prices.
+
+    Extended Summary
+    ----------------
+    This function is used to calculate a relationship between VIX prices and the implied
+    volatility of an for a given security at different strike prices. This process uses end 
+    of day (EOD) market data to correlate the ImpVol & VIX using the Black-Scholes formula.
+    This can be used with both American and European style options.
+
+    Returns
+    -------
+    callFits : list
+        List of best fit lines for corresponding days until expiration
+
+    Also has ability to plot the correlation using Matplotlib
+    """
+
+    Folder = r"C:\Users\Erik\Desktop\devMisc\OptionsCalc\MasterData"
+    SPYPrices = "spy_historical_data"
+    VIXPrices = "vix_historical_data"
+    SPYCalls = "spy_calls_data"
+
+    # Grab the filepath of the 3 source files needed -  EOD pricing data for security + VIX,
+    # as well as the historical option pricing data
+    DataFolder = Folder # May have to do some string fuckery with this
+    FilePathPrice = SPYPrices + ".csv"
+    FilePathVIX = VIXPrices + ".csv"
+    FilePathCalls = SPYCalls + ".csv"
+
+    FilePathPrice = os.path.join(DataFolder, FilePathPrice)
+    FilePathVIX = os.path.join(DataFolder, FilePathVIX)
+    FilePathCalls = os.path.join(DataFolder, FilePathCalls)
+
+    # Read in all the CSV Data
+    with open(FilePathPrice) as Pricecsv:
+        PriceData = list(csv.reader(Pricecsv))
+
+    with open(FilePathVIX) as VIXcsv:
+        VIXData = list(csv.reader(VIXcsv))
+
+    with open(FilePathCalls) as Callcsv:
+        CallData = list(csv.reader(Callcsv))
+
+    dateCol = 0
+    symbCol = 0
+    exprCol = 0
+    impvCol = 0
+
+    # Grab date & option symbol column, make sure we know what the security is and what
+    # column contains dates, option information, and expiration dates
+    for iCol in range(len(CallData[0])):
+        if CallData[0][iCol] == "date": dateCol = iCol; continue
+        elif CallData[0][iCol] == "symbol": symbCol = iCol; continue
+        elif CallData[0][iCol] == "exdate": exprCol = iCol; continue
+        elif CallData[0][iCol] == "impl_volatility": impvCol = iCol; continue
+
+    # All relevant information for the options contracts
+    optionsInfo = []
+    VIXIndex = 0
+    EODIndex = 0
+    
+    # Loop over time using the option data as the earliest starting time
+    for iDate in range(1, len(CallData)):
+        tempInfo = []
+
+        # Check to see if the option data has corresponding VIX and closing historical data
+        for iCheck in range(VIXIndex, len(VIXData)):
+            if VIXData[iCheck][0] == CallData[iDate][dateCol]:
+                VIXCheck = True
+                VIXIndex = iCheck
+                break
+        for iCheck in range(EODIndex, len(PriceData)):
+            if PriceData[iCheck][1] == CallData[iDate][dateCol]:
+                EODCheck = True
+                EODIndex = iCheck
+                break
+        if VIXCheck ^ EODCheck or (VIXCheck == False and EODCheck == False): continue
+
+        # Check to see if it is short term option or not
+        presentDay = CallData[iDate][dateCol]
+        exprDay = CallData[iDate][exprCol]
+        # Slice it to fit datetime format YEAR 0-3, MONTH 4-5, DAY 6-7
+        presentDay = date(int(presentDay[0:4]), int(presentDay[4:6]), int(presentDay[6:8]))
+        exprDay = date(int(exprDay[0:4]), int(exprDay[4:6]), int(exprDay[6:8]))
+
+        strike = float(strike_extractor(CallData[iDate][symbCol]))
+
+        DTE = 8
+        Diff2Strike = 10
+        # Check to see if the option present fits our criteria of days to expiration and difference to strike
+        if ((exprDay - presentDay).days > DTE) or (abs(strike - float(PriceData[EODIndex][2])) > Diff2Strike):
+            continue
+
+        # Build our list for the day
+        tempInfo.append(presentDay)
+        tempInfo.append(exprDay)
+        tempInfo.append((exprDay - presentDay).days)
+        tempInfo.append(strike)
+        tempInfo.append(float(PriceData[EODIndex][2]))
+        tempInfo.append(100*float(CallData[iDate][impvCol]))
+        tempInfo.append(float(VIXData[VIXIndex][1]))
+
+        # Append it to the big list
+        optionsInfo.append(tempInfo)
+        
+    # Pull out VIX and implied volatility
+    IMPV = [[] for i in range(DTE-1)]
+    VIX = [[] for i in range(DTE-1)]
+ 
+    iRow = len(optionsInfo)-1
+    # Filter out the few hundred thousand into a few thousand
+    while iRow > 0:
+        IMPV[optionsInfo[iRow][2]-2].append(optionsInfo[iRow][5])
+        VIX[optionsInfo[iRow][2]-2].append(optionsInfo[iRow][6])
+        iRow -= 100
+
+    # Make our linear regressions, then remove outliers - runs a few times to trim off fat
+    # Could probably improve this method of multi-regression, but for now it "works"
+    trimMultiplier = [4, 3, 2, 1.5, 1.33]
+
+    for iReg in range(len(trimMultiplier)):
+        bestFits = [[] for i in range(DTE-1)]
+        for iRow in range(len(IMPV)):
+            bestFits[iRow] = stats.linregress(VIX[iRow], IMPV[iRow])
+
+        # Define out outliers as >2x the regression value
+        for iRow in range(len(VIX)):
+            for iCol in range(len(VIX[iRow])-1, -1, -1):
+                val = trimMultiplier[iReg] * (bestFits[iRow].slope * VIX[iRow][iCol] + bestFits[iRow].intercept)
+                if (IMPV[iRow][iCol] > val):
+                    del(IMPV[iRow][iCol])
+                    del(VIX[iRow][iCol])
+
+    # One final update to the best fit lines
+    for iRow in range(len(IMPV)):
+            bestFits[iRow] = stats.linregress(VIX[iRow], IMPV[iRow])
+
+    # Then plot it - commented out as you don't need to see it
+    for iRow in range((len(IMPV))):
+        titletext = "SPY calls' IV with %s DTE" % str(iRow+1)
+        X = linspace(min(VIX[iRow]), max(VIX[iRow]), len(VIX[iRow]))
+        Y = []
+        for i in range(len(VIX[iRow])):
+            Y.append(bestFits[iRow].slope * X[i] + bestFits[iRow].intercept)
+        plt.figure()
+        plt.plot(VIX[iRow], IMPV[iRow],"o",color="black")
+        plt.plot(X, Y, color="red")
+        plt.title(titletext)
+        plt.xlabel("VIX Price")
+        plt.ylabel("Implied Volatility")
+
+    plt.show(block=True)
+    return bestFits
+
 
 class OPTION:
     def __init__(self):

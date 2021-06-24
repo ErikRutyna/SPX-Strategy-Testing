@@ -1,9 +1,6 @@
 import optionsCalc as OC
 import spy_price_adjuster as PA
-import historical_price_adj as HPA
 from yahoo_fin import stock_info as si
-
-# Coeff = HPA.historicalPriceAdj()
 
 IVAdjFits = PA.spy_price_adjust()
 
@@ -11,7 +8,10 @@ Folder = r"C:\Users\Erik\Desktop\devMisc\OptionsCalc\MasterData"
 SPYData = "spy_testing_data"
 SPYPrices = "spy_historical_data"
 VIXPrices = "vix_historical_data"
-IVFits = OC.impv_rel(Folder, SPYData, SPYPrices, VIXPrices, 8)
+SPYCalls = "spy_calls_data"
+IVFitsP = OC.impv_rel(Folder, SPYData, SPYPrices, VIXPrices, 8)
+IVFitsC = OC.impv_rel_Calls()
+
 
 Name = "SPY"
 Strike = 421
@@ -19,7 +19,7 @@ DTE = 2
 Price =  si.get_live_price(Name)
 RFRR = si.get_live_price("^TNX")
 IV = si.get_live_price("^VIX")
-IV = IVFits[DTE-1].slope * IV + IVFits[DTE-1].intercept
+IV = IVFitsP[DTE-1].slope * IV + IVFitsP[DTE-1].intercept
 
 
 TestPut = OC.black_scholes(Name, Price, Strike, RFRR/100, DTE, IV/100, "P")

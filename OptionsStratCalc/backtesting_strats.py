@@ -267,6 +267,10 @@ def PCS_SPY(TradeParameters, StartDate, DataFiles):
     
     return BacktestResults
 
+def CCS_SPY(TradeParameters, StartDate, DataFiles):
+
+def ICS_SPY(TradeParameters, StartDate, DataFiles):
+
 def OpenPCSSPY(Year, DTE, Mark, VIX, IR, Delta, Width, IVF, PA, Intraday):
     """Opens a put credit spread (PCS) on SPY.
 
@@ -371,7 +375,6 @@ def OpenPCSSPY(Year, DTE, Mark, VIX, IR, Delta, Width, IVF, PA, Intraday):
 
     return Credit, Risk, Position, Strike
 
-
 def ClosePCSSPY(Year, DTE, Mark, VIX, IR, Width, IVF, PA, Intraday, Strike):
     """Closes a put credit spread (PCS) on SPY.
 
@@ -458,3 +461,7 @@ def ClosePCSSPY(Year, DTE, Mark, VIX, IR, Width, IVF, PA, Intraday, Strike):
     Debit = abs(round(LongPut.price - ShortPut.price, 2))
 
     return Debit
+
+def OpenCCSSPY(Year, DTE, Mark, VIX, IR, Delta, Width, IVF, PA, Intraday):
+
+def CloseCCSSPY(Year, DTE, Mark, VIX, IR, Width, IVF, PA, Intraday, Strike):
