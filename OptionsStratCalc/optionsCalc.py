@@ -56,7 +56,7 @@ def black_scholes(symbol, value, strike, interest, time, IV, type):
         theta = -(strike * stats.norm.pdf(d1) * IV) / (2 * math.sqrt(time/365)) + interest * strike * math.exp(-interest * time / 365) * stats.norm.cdf(-d2)
     elif type == "C":
         opt_cost = stats.norm.cdf(d1) * value - stats.norm.cdf(d2) * strike * math.exp(-interest * time/365)
-        delta = stats.norm(d1) 
+        delta = stats.norm.cdf(d1) 
         theta = -(strike * stats.norm.pdf(d1) * IV) / (2 * math.sqrt(time/365)) - interest * strike * math.exp(-interest*time/365) * stats.norm.cdf(d2)
 
     gamma = stats.norm.pdf(d1) / (value * IV * math.sqrt(time/365))
@@ -223,20 +223,20 @@ def impv_rel(Folder, OPTData, EODData, VIXData, maxdte):
             bestFits[iRow] = stats.linregress(VIX[iRow], IMPV[iRow])
 
     # Then plot it - commented out as you don't need to see it
-    for iRow in range((len(IMPV))):
-        titletext = securityName + " puts' IV with %s DTE" % str(iRow+1)
-        X = linspace(min(VIX[iRow]), max(VIX[iRow]), len(VIX[iRow]))
-        Y = []
-        for i in range(len(VIX[iRow])):
-            Y.append(bestFits[iRow].slope * X[i] + bestFits[iRow].intercept)
-        plt.figure()
-        plt.plot(VIX[iRow], IMPV[iRow],"o",color="black")
-        plt.plot(X, Y, color="red")
-        plt.title(titletext)
-        plt.xlabel("VIX Price")
-        plt.ylabel("Implied Volatility")
+    # for iRow in range((len(IMPV))):
+    #     titletext = securityName + " puts' IV with %s DTE" % str(iRow+1)
+    #     X = linspace(min(VIX[iRow]), max(VIX[iRow]), len(VIX[iRow]))
+    #     Y = []
+    #     for i in range(len(VIX[iRow])):
+    #         Y.append(bestFits[iRow].slope * X[i] + bestFits[iRow].intercept)
+    #     plt.figure()
+    #     plt.plot(VIX[iRow], IMPV[iRow],"o",color="black")
+    #     plt.plot(X, Y, color="red")
+    #     plt.title(titletext)
+    #     plt.xlabel("VIX Price")
+    #     plt.ylabel("Implied Volatility")
 
-    plt.show(block=True)
+    # plt.show(block=True)
 
     return bestFits
 
@@ -371,7 +371,7 @@ def impv_rel_Calls():
     Folder = r"C:\Users\Erik\Desktop\devMisc\OptionsCalc\MasterData"
     SPYPrices = "spy_historical_data"
     VIXPrices = "vix_historical_data"
-    SPYCalls = "spy_calls_data"
+    SPYCalls = "spy_calls_data_reduced"
 
     # Grab the filepath of the 3 source files needed -  EOD pricing data for security + VIX,
     # as well as the historical option pricing data
@@ -489,20 +489,20 @@ def impv_rel_Calls():
             bestFits[iRow] = stats.linregress(VIX[iRow], IMPV[iRow])
 
     # Then plot it - commented out as you don't need to see it
-    for iRow in range((len(IMPV))):
-        titletext = "SPY calls' IV with %s DTE" % str(iRow+1)
-        X = linspace(min(VIX[iRow]), max(VIX[iRow]), len(VIX[iRow]))
-        Y = []
-        for i in range(len(VIX[iRow])):
-            Y.append(bestFits[iRow].slope * X[i] + bestFits[iRow].intercept)
-        plt.figure()
-        plt.plot(VIX[iRow], IMPV[iRow],"o",color="black")
-        plt.plot(X, Y, color="red")
-        plt.title(titletext)
-        plt.xlabel("VIX Price")
-        plt.ylabel("Implied Volatility")
+    # for iRow in range((len(IMPV))):
+    #     titletext = "SPY calls' IV with %s DTE" % str(iRow+1)
+    #     X = linspace(min(VIX[iRow]), max(VIX[iRow]), len(VIX[iRow]))
+    #     Y = []
+    #     for i in range(len(VIX[iRow])):
+    #         Y.append(bestFits[iRow].slope * X[i] + bestFits[iRow].intercept)
+    #     plt.figure()
+    #     plt.plot(VIX[iRow], IMPV[iRow],"o",color="black")
+    #     plt.plot(X, Y, color="red")
+    #     plt.title(titletext)
+    #     plt.xlabel("VIX Price")
+    #     plt.ylabel("Implied Volatility")
 
-    plt.show(block=True)
+    # plt.show(block=True)
     return bestFits
 
 

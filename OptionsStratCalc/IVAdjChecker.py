@@ -1,6 +1,9 @@
 import optionsCalc as OC
 import spy_price_adjuster as PA
 from yahoo_fin import stock_info as si
+import tickerCleanup_WBS as tbw
+
+tbw.miscCallsCleaner()
 
 IVAdjFits = PA.spy_price_adjust()
 
@@ -10,7 +13,6 @@ SPYPrices = "spy_historical_data"
 VIXPrices = "vix_historical_data"
 SPYCalls = "spy_calls_data"
 IVFitsP = OC.impv_rel(Folder, SPYData, SPYPrices, VIXPrices, 8)
-IVFitsC = OC.impv_rel_Calls()
 
 
 Name = "SPY"
