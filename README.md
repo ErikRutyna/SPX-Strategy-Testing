@@ -1,5 +1,5 @@
 # Options Strat Calc
-Tests validity of trading short term options on high liquidity, non-volatile index funds (i.e. SPY) for quick and consistent returns.
+Tests validity of trading short term options on high liquidity, non-volatile index funds (i.e. SPY and SPX) for quick and consistent returns.
 
 # Put Credit Spreads
 Sell a put at a certain delta and buy one at a lower strike as insurance, collecting a net premium.
