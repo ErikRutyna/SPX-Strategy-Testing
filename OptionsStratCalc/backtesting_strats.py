@@ -1,10 +1,8 @@
-from ast import Str
 import numpy as np
 import csv
 import math
 import datetime
 import optionsCalc as OC
-import historical_price_adj as hpa
 
 
 def PCS_SPY(TradeParameters, StartDate, DataFiles):
