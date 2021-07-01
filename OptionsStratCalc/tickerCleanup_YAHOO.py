@@ -25,7 +25,7 @@ def tickerDataCleaner_yh(FileName):
 
 
     # Get our full filepath
-    FilePath = r"C:\Users\Erik\Desktop\devMisc\OptionsCalc\MasterData"
+    FilePath = r"C:\Users\Erik\Desktop\devMisc\OptionsCalc\MasterData\Security Data"
     SourceFile = FileName + ".csv"
     CSVPath = os.path.join(FilePath, SourceFile)
     

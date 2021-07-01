@@ -1850,7 +1850,6 @@ def ICS_SPY2(TradeParameters, StartDate, DataFiles):
     
     return BacktestResults       
 
-
 def OpenPCSSPY(Year, DTE, Mark, VIX, IR, Delta, Width, IVF, PA, Intraday):
     """Opens a put credit spread (PCS) on SPY.
 
@@ -2139,7 +2138,6 @@ def OpenPCSSPY_IF(Year, DTE, Mark, VIX, IR, Strike, Width, IVF, PA, Intraday):
     Position =  True
 
     return Credit, Risk, Position, Strike
-
 
 def OpenCCSSPY(Year, DTE, Mark, VIX, IR, Delta, Width, IVF, PA, Intraday):
     """Opens a call credit spread (PCS) on SPY.

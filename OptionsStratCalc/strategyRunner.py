@@ -1,7 +1,8 @@
 import os
 import numpy as np
 import datetime 
-import backtesting_strats as BT
+import backtesting_strats_spy as BTSPY
+import backtesting_strats_spx as BTSPX
 import warnings
 
 warnings.filterwarnings("ignore")
@@ -20,61 +21,32 @@ DataFiles = [SPYData, VIXData, TNXData]
 
 # Initial Financial Info
 InitialBalance =  3000
-MaxRisk = 0.1
-Delta = [0.1]
-ClosingPercent = [0.5]
+MaxRiskTrade = 500/3000
+Delta = [0.15, 0.20, 0.25, 0.3]
+Scaling = ["width", "contracts"]
+MaxRiskTotal = 20000
 
-# Start date - must be after Jan '16 for MWF SPY options
+# Start date - must start in/after Jan 6 '17 for MWF SPY options due to limite ddata
 # Good dates to test are on (YEAR-MONTH-DAY):
-# 2020, 1, 2
-# 2016, 1, 4
-# 2017, 6, 9
+# 2020 - 1 - 2
+# 2018 - 1 - 
+# 2017 - 1 - 6
 StartDate = datetime.datetime(2020, 1, 2)
 
+
 for i in range(len(Delta)):
-    for j in range(len(ClosingPercent)):
+    for j in range(len(Scaling)):
 
-        # print("\n ===== Now testing PCS =====\n")
-        # Conditions = np.array([InitialBalance, MaxRisk, Delta[i], ClosingPercent[j]])
-        # Results = BT.PCS_SPY(Conditions, StartDate, DataFiles)
-        # print("The final profit from backtesting with a \u0394-value: {0} and closing at {1}% is: ${2}".format(Delta[i],\
-        #     (100*ClosingPercent[j]), round(float(Results[0]),2)))
-        # print("The total number of trades is: {0}".format(int(Results[1])))
-        # print("The total amount of spreads traded is: {0}".format(int(Results[8])))
-        # print("The total amount spent in comissions is: ${0}".format(int(Results[2])))
-        # print("The total number of day trades is: {0}".format(int(Results[3])))
-        # print("The number of trades fully lost is: {0}".format(int(Results[4])))
-        # print("The number of trades partially lost is: {0}".format(int(Results[5])))
-        # print("The total amount spent on taxes is: ${0}".format(round(float(Results[6]),2)))
-        # print("The stop loss kicked in {0} times".format(int(Results[9])))
-        # print("Investing ${0} into SPY on 1/4/2016 would yield ${1} on December 31, 2020".format(InitialBalance, float(Results[7])))
-
-        print("\n ===== Now testing CCS =====\n")
-        Conditions = np.array([InitialBalance, MaxRisk, Delta[i], ClosingPercent[j]])
-        Results = BT.CCS_SPY3(Conditions, StartDate, DataFiles)
-        print("The final profit from backtesting with a \u0394-value: {0} and closing at {1}% is: ${2}".format(Delta[i],\
-            (100*ClosingPercent[j]), round(float(Results[0]),2)))
+        print("\n ===== Now testing PCS =====\n")
+        Conditions = np.array([InitialBalance, MaxRiskTrade, Delta[i], MaxRiskTotal])
+        Results = BTSPX.PCS_SPX(Conditions, StartDate, Scaling[j])
+        print("The final profit from backtesting with a \u0394-value of {0} and scaling via ".format(Delta[i])\
+             + Scaling[j] + " is: ${0}".format(round(float(Results[0]),2)))
         print("The total number of trades is: {0}".format(int(Results[1])))
-        print("The total amount of spreads traded is: {0}".format(int(Results[8])))
-        print("The total amount spent in comissions is: ${0}".format(int(Results[2])))
-        print("The total number of day trades is: {0}".format(int(Results[3])))
-        print("The number of trades fully lost is: {0}".format(int(Results[4])))
+        print("The total amount of spreads traded is: {0}".format(int(Results[2])))
+        print("The number of trades fully won is: {0}".format(int(Results[3])))
+        print("The number of trades partially won is: {0}".format(int(Results[4])))
         print("The number of trades partially lost is: {0}".format(int(Results[5])))
-        print("The total amount spent on taxes is: ${0}".format(round(float(Results[6]),2)))
-        print("The stop loss kicked in {0} times".format(int(Results[9])))
-        print("Investing ${0} into SPY on 1/4/2016 would yield ${1} on December 31, 2020".format(InitialBalance, float(Results[7])))
-
-        # print("\n ===== Now testing ICs =====\n")
-        # Conditions = np.array([InitialBalance, MaxRisk, Delta[i], ClosingPercent[j]])
-        # Results = BT.ICS_SPY2(Conditions, StartDate, DataFiles)
-        # print("The final profit from backtesting with a \u0394-value: {0} and closing at {1}% is: ${2}".format(Delta[i],\
-        #     (100*ClosingPercent[j]), round(float(Results[0]),2)))
-        # print("The total number of trades is: {0}".format(int(Results[1])))
-        # print("The total amount of condors traded is: {0}".format(int(Results[8])))
-        # print("The total amount spent in comissions is: ${0}".format(int(Results[2])))
-        # print("The total number of day trades is: {0}".format(int(Results[3])))
-        # print("The number of trades fully lost is: {0}".format(int(Results[4])))
-        # print("The number of trades partially lost is: {0}".format(int(Results[5])))
-        # print("The total amount spent on taxes is: ${0}".format(round(float(Results[6]),2)))
-        # print("The stop loss kicked in {0} times".format(int(Results[9])))
-        # print("Investing ${0} into SPY on 1/4/2016 would yield ${1} on December 31, 2020".format(InitialBalance, float(Results[7])))
+        print("The number of trades fully lost is: {0}".format(int(Results[6])))
+        print("The total amount spent on taxes is: ${0}".format(round(float(Results[7]),2)))
+        print("The total amount spent in comissions is: ${0}".format(int(Results[8])))

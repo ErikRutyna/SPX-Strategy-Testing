@@ -1,8 +1,9 @@
 import csv
 import datetime
 import os
-from pathlib import Path
-from typing import Final
+import numpy as np
+import pandas as pd
+from multiprocessing import Pool
 
 def tickerDataCleaner_iv(Ticker, FileName):
     """Cleans up the ticker information from the CSV source file.
@@ -215,6 +216,135 @@ def tickerDataCleaner_price(Ticker, FileName):
     #         writer.writerow(line)
 
     # print("Done writing, please spot check final output file!")
+
+def SPY_SPX_data_extractor(Filename):
+    """Extracts the historical options chain for SPY and SPX.
+
+    Extended Summary
+    ----------------
+    This function can be used to create historical options chain for short DTE (< 15 DTE) and
+    small close to the money Moneyness < 35 for SPY and Moneyness < 350 for SPX from the given
+    historical data file.
+
+    Parameters
+    ----------
+
+    Filename : string
+        The filename of the source CSV with the entire historical options chain.
+
+    "Returns"
+    -------
+    Nothing --- saves a file in the same directory as input files that is a "cleaned/reduced" CSV
+        that has only the information we want
+    """
+    # Data directory
+    Folder = r"C:\Users\Erik\Desktop\devMisc\OptionsCalc\MasterData\SPY and SPX Options Data"
+    # Location of the file
+    Filename = os.path.join(Folder, Filename)
+
+    # Open/load in the CSV and read it all into memory (yikes!)
+    with open(Filename) as FileIn:
+        RawChain = list(csv.reader(FileIn))
+
+    # Header line that contains all the column information
+    Header = np.array(RawChain[0])
+    SymCol = int(np.where(Header == "symbol")[0])
+    FlgCol = int(np.where(Header == "cp_flag")[0])
+    BidCol = int(np.where(Header == "best_bid")[0])
+    OfrCol = int(np.where(Header == "best_offer")[0])
+    VolCol = int(np.where(Header == "impl_volatility")[0])
+    DelCol = int(np.where(Header == "delta")[0])
+
+    # The four categories
+    SPXCalls = []
+    SPXPuts = []
+    SPYCalls = []
+    SPYPuts = []
+
+    for i in range(len(RawChain)-1, -1, -1):
+        if i == 0: break
+
+        Symbol = RawChain[i][SymCol][0:5]
+
+        # Delete any row that doesnt contain needed information, or is the wrong ticker
+        if (not RawChain[i][BidCol]) or (not RawChain[i][BidCol]) or (not RawChain[i][OfrCol])\
+            or (not RawChain[i][VolCol]) or (not RawChain[i][DelCol])\
+                or ((not "SPY" in Symbol) and (not "SPXW" in Symbol)):
+            del RawChain[i]; continue
+
+        # Sort out the data into puts and calls for the different chains
+        if "SPXW" in Symbol:
+            if "P" in RawChain[i][FlgCol]:
+                 SPXPuts.append(RawChain[i])
+            else:
+                SPXCalls.append(RawChain[i])
+                
+        elif "SPY" in Symbol:
+            if "P" in RawChain[i][FlgCol]:
+                SPYPuts.append(RawChain[i])
+            else:
+                SPYCalls.append(RawChain[i])
+
+    print("Done cleaning and sorting, now writing")
+    # def parallelframe(OptionsChain, Cleaner):
+    #     SplitChain = np.array_split(OptionsChain, 4)
+    #     pool = Pool(4)
+    #     CombinedChain = pd.concat(pool.map(ParallelCleaner, SplitChain))
+    #     pool.close()
+    #     pool.join()
+    #     return CombinedChain
+
+    # Turn it into an array - get rid of the old list
+    SPXCallPath = os.path.join(Folder, "SPXCallsChain.csv")
+    SPXPutPath = os.path.join(Folder, "SPXPutsChain.csv")
+    SPYPutPath = os.path.join(Folder, "SPYCallsChain.csv")
+    SPYCallPath = os.path.join(Folder, "SPYPutsChain.csv")
+
+
+    
+    print("Done sorting - on to writing")
+
+    with open(SPXCallPath, 'w', newline='') as file:
+        writer = csv.writer(file)
+        for line in SPXCalls:
+            writer.writerow(line)
+
+    with open(SPXPutPath, 'w', newline='') as file:
+        writer = csv.writer(file)
+        for line in SPXPuts:
+            writer.writerow(line)
+
+    with open(SPYPutPath, 'w', newline='') as file:
+        writer = csv.writer(file)
+        for line in SPYCalls:
+            writer.writerow(line)
+
+    with open(SPYCallPath, 'w', newline='') as file:
+        writer = csv.writer(file)
+        for line in SPYPuts:
+            writer.writerow(line)
+
+    return
+
+def ParallelCleaner(RawOptChain):
+    Header = np.array(RawOptChain[0])
+    SymCol = int(np.where(Header == "symbol")[0])
+    ExpCol = int(np.where(Header == "exdate")[0])
+    FlgCol = int(np.where(Header == "cp_flag")[0])
+    BidCol = int(np.where(Header == "best_bid")[0])
+    OfrCol = int(np.where(Header == "best_offer")[0])
+    VolCol = int(np.where(Header == "impl_volatility")[0])
+    DelCol = int(np.where(Header == "delta")[0])
+
+    for i in range(len(RawOptChain)-1, -1, -1):
+        Symbol = RawOptChain[i][SymCol][0:5]
+
+        # Delete any row that doesnt contain needed information, or is the wrong ticker
+        if (not RawOptChain[i][BidCol]) or (not RawOptChain[i][BidCol]) or (not RawOptChain[i][OfrCol])\
+            or (not RawOptChain[i][VolCol]) or (not RawOptChain[i][DelCol])\
+                or ((not "SPY" in Symbol) and (not "SPXW" in Symbol)):
+            del RawOptChain[i]
+    return RawOptChain
 
 def miscCallsCleaner():
     """This only should be used once, ignore me otherwise.
