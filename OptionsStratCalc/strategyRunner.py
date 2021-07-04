@@ -22,7 +22,7 @@ DataFiles = [SPYData, VIXData, TNXData]
 # Initial Financial Info
 InitialBalance =  3000
 MaxRiskTrade = 500/3000
-Delta = [0.15, 0.20, 0.25, 0.3]
+Delta = [0.15, 0.20, 0.25, 0.3, 0.35, 0.4]
 Scaling = ["width", "contracts"]
 MaxRiskTotal = 20000
 
@@ -37,13 +37,15 @@ StartDate = datetime.datetime(2016, 1, 5)
 for i in range(len(Delta)):
     for j in range(len(Scaling)):
 
-        print("\n ===== Now testing PCS =====\n")
+        print("===== Now testing PCS =====")
         Conditions = np.array([InitialBalance, MaxRiskTrade, Delta[i], MaxRiskTotal])
         Results = BTSPX.PCS_SPX(Conditions, StartDate, Scaling[j])
         print("The final profit with \u0394 = {0} and scaling via ".format(Delta[i])\
              + Scaling[j] + " is: ${0}".format(round(float(Results[0]),2)))
-        print("The average percent return on collateral per trade is: {0}%".format(round(float(Results[9]),4)))
-        print("The total number of trades is: {0}".format(int(Results[1])))
+        print("The average return on collateral per trade is: {0}%".format(round(float(Results[9]),4)))
+        print("The total number of trades done: {0}".format(int(Results[1])))
+        print("The total number of historical trades is: {0}".format(int(Results[1]) - int(Results[10])))
+        print("The total number of trades simulated: {0}".format(int(Results[10])))
         print("The total amount of spreads traded is: {0}".format(int(Results[2])))
         print("The number of trades fully won is: {0}".format(int(Results[3])))
         print("The number of trades partially won is: {0}".format(int(Results[4])))
@@ -51,18 +53,40 @@ for i in range(len(Delta)):
         print("The number of trades fully lost is: {0}".format(int(Results[6])))
         print("The total amount spent on taxes is: ${0}".format(round(float(Results[7]),2)))
         print("The total amount spent in comissions is: ${0}".format(round(float(Results[8]), 2)))
+        print("\n")
 
-        # print("\n ===== Now testing CCS =====\n")
-        # Conditions = np.array([InitialBalance, MaxRiskTrade, Delta[i], MaxRiskTotal])
-        # Results = BTSPX.CCS_SPX(Conditions, StartDate, Scaling[j])
-        # print("The final profit with \u0394 = {0} and scaling via ".format(Delta[i])\
-        #      + Scaling[j] + " is: ${0}".format(round(float(Results[0]),2)))
-        # print("The average percent return on collateral per trade is: {0}%".format(round(float(Results[9]),4)))
-        # print("The total number of trades is: {0}".format(int(Results[1])))
-        # print("The total amount of spreads traded is: {0}".format(int(Results[2])))
-        # print("The number of trades fully won is: {0}".format(int(Results[3])))
-        # print("The number of trades partially won is: {0}".format(int(Results[4])))
-        # print("The number of trades partially lost is: {0}".format(int(Results[5])))
-        # print("The number of trades fully lost is: {0}".format(int(Results[6])))
-        # print("The total amount spent on taxes is: ${0}".format(round(float(Results[7]),2)))
-        # print("The total amount spent in comissions is: ${0}".format(round(float(Results[8]), 2)))
+        print("\n ===== Now testing CCS =====")
+        Conditions = np.array([InitialBalance, MaxRiskTrade, Delta[i], MaxRiskTotal])
+        Results = BTSPX.CCS_SPX(Conditions, StartDate, Scaling[j])
+        print("The final profit with \u0394 = {0} and scaling via ".format(Delta[i])\
+             + Scaling[j] + " is: ${0}".format(round(float(Results[0]),2)))
+        print("The average return on collateral per trade is: {0}%".format(round(float(Results[9]),4)))
+        print("The total number of trades done: {0}".format(int(Results[1])))
+        print("The total number of historical trades is: {0}".format(int(Results[1]) - int(Results[10])))
+        print("The total number of trades simulated: {0}".format(int(Results[10])))
+        print("The total amount of spreads traded is: {0}".format(int(Results[2])))
+        print("The number of trades fully won is: {0}".format(int(Results[3])))
+        print("The number of trades partially won is: {0}".format(int(Results[4])))
+        print("The number of trades partially lost is: {0}".format(int(Results[5])))
+        print("The number of trades fully lost is: {0}".format(int(Results[6])))
+        print("The total amount spent on taxes is: ${0}".format(round(float(Results[7]),2)))
+        print("The total amount spent in comissions is: ${0}".format(round(float(Results[8]), 2)))
+        print("\n")
+
+        print("\n ===== Now testing ICS =====")
+        Conditions = np.array([InitialBalance, MaxRiskTrade, Delta[i], MaxRiskTotal])
+        Results = BTSPX.ICS_SPX(Conditions, StartDate, Scaling[j])
+        print("The final profit with \u0394 = {0} and scaling via ".format(Delta[i])\
+             + Scaling[j] + " is: ${0}".format(round(float(Results[0]),2)))
+        print("The average return on collateral per trade is: {0}%".format(round(float(Results[9]),4)))
+        print("The total number of trades done: {0}".format(int(Results[1])))
+        print("The total number of historical trades is: {0}".format(int(Results[1]) - int(Results[10])))
+        print("The total number of trades simulated: {0}".format(int(Results[10])))
+        print("The total amount of spreads traded is: {0}".format(int(Results[2])))
+        print("The number of trades fully won is: {0}".format(int(Results[3])))
+        print("The number of trades partially won is: {0}".format(int(Results[4])))
+        print("The number of trades partially lost is: {0}".format(int(Results[5])))
+        print("The number of trades fully lost is: {0}".format(int(Results[6])))
+        print("The total amount spent on taxes is: ${0}".format(round(float(Results[7]),2)))
+        print("The total amount spent in comissions is: ${0}".format(round(float(Results[8]), 2)))
+        print("\n")
