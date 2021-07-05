@@ -1,4 +1,3 @@
-from ast import Num
 import numpy as np
 import os
 import csv
@@ -54,6 +53,7 @@ def PCS_SPX(TradeParameters, StartDate, ScalingMethod):
     # Output information
     BacktestResults = np.zeros([11,1])
     ReturnOnCollateral = np.empty([0])
+    Balance = [[],[]]
 
     # Read in the data files
     with open(SPXHistPrice) as DataFile:
@@ -212,6 +212,10 @@ def PCS_SPX(TradeParameters, StartDate, ScalingMethod):
             Position = False
             Simulation = False
 
+            # Append the account balances
+            Balance[0].append(TradeParameters[0])
+            Balance[1].append(CurrentDay.strftime("%Y") + CurrentDay.strftime("%m") + CurrentDay.strftime("%d"))
+
         if (Weekday == "Mon" or Weekday == "Wed") and not Position:
             DTE = 2
             Credit, Risk, Strike, Position, PrevIndex, ExpDate, Simulation = \
@@ -223,7 +227,7 @@ def PCS_SPX(TradeParameters, StartDate, ScalingMethod):
                 OpenPCSSPX(TradeParameters[2], Width, PrevIndex, DTE, CurrentDay, ReturnOnCollateral)
         
     BacktestResults[9] = np.mean(ReturnOnCollateral) * 100
-    return BacktestResults
+    return BacktestResults, Balance
 
 def CCS_SPX(TradeParameters, StartDate, ScalingMethod):
     """Backtests selling M2W, W2F, and F2M call credit spreads on SPX and resulting gains/losses.
@@ -257,6 +261,9 @@ def CCS_SPX(TradeParameters, StartDate, ScalingMethod):
         number of trades totally won, number of trades partially won, number of trades partially lost, ...
         number of trades totally lost, amount spent on taxes, amount spent on comissions, ...
         average return on collateral, number of simulated trades using average returns]
+
+    Balance : list
+        List of account balances at EoD for the corresponding date
     """
     global SPXHistPrice, SPXCallChain
     global SymCol, BidCol, OfrCol, DelCol, DayCol, ExpCol
@@ -273,6 +280,7 @@ def CCS_SPX(TradeParameters, StartDate, ScalingMethod):
     # Output array
     BacktestResults = np.zeros([11,1])
     ReturnOnCollateral = np.empty([0])
+    Balance = [[],[]]
 
     # Read in the data files
     with open(SPXHistPrice) as DataFile:
@@ -434,6 +442,10 @@ def CCS_SPX(TradeParameters, StartDate, ScalingMethod):
             Position = False
             Simulation = False
 
+            # Append to our account balances
+            Balance[0].append(TradeParameters[0])
+            Balance[1].append(CurrentDay)
+
         if (Weekday == "Mon" or Weekday == "Wed") and not Position:
             DTE = 2
             Credit, Risk, Strike, Position, PrevIndex, ExpDate, Simulation = \
@@ -446,7 +458,7 @@ def CCS_SPX(TradeParameters, StartDate, ScalingMethod):
                
         
     BacktestResults[9] = np.mean(ReturnOnCollateral) * 100
-    return BacktestResults
+    return BacktestResults, Balance
 
 def ICS_SPX(TradeParameters, StartDate, ScalingMethod):
     """Backtests selling M2W, W2F, and F2M Iron Condors on SPX and resulting gains/losses.
@@ -480,6 +492,9 @@ def ICS_SPX(TradeParameters, StartDate, ScalingMethod):
         number of trades totally won, number of trades partially won, number of trades partially lost, ...
         number of trades totally lost, amount spent on taxes, amount spent on comissions, ...
         average return on collateral, number of simulated trades using average returns]
+
+    Balance :  list
+        List showing the balance of the account on each corresponding day
     """
     global SPXHistPrice, SPXCallChain, SPXPutChain
     global SymCol, BidCol, OfrCol, DelCol, DayCol, ExpCol
@@ -499,6 +514,7 @@ def ICS_SPX(TradeParameters, StartDate, ScalingMethod):
     # Output array
     BacktestResults = np.zeros([11,1])
     ReturnOnCollateral = np.empty([0])
+    Balance = [[],[]]
 
     # Read in the data files
     with open(SPXHistPrice) as DataFile:
@@ -670,6 +686,10 @@ def ICS_SPX(TradeParameters, StartDate, ScalingMethod):
             Simulations[0] = False
             Simulations[1] = False
 
+            # Append to lists of dates and account balance
+            Balance[0].append(TradeParameters[0])
+            Balance[1].append(CurrentDay)
+
         if (Weekday == "Mon" or Weekday == "Wed") and not Position:
             DTE = 2
             Credits, Risk, Strikes, Position, PrevIndex, ExpDate, Simulations = \
@@ -683,7 +703,7 @@ def ICS_SPX(TradeParameters, StartDate, ScalingMethod):
 
 
     BacktestResults[9] = np.mean(ReturnOnCollateral) * 100
-    return BacktestResults
+    return BacktestResults, Balance
 
 def OpenPCSSPX(Delta, Width, IndexOffset, DTE, Day, RoC):
     """Calculates value for selling a PCS on SPX for a given delta on that date.
