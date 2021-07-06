@@ -10,7 +10,7 @@ Folder = r"C:\Users\Erik\Desktop\devMisc\OptionsCalc\BacktestResults"
 InitialBalance =  3000
 MaxRiskTrade = 500/3000
 Delta = [0.15, 0.20, 0.25, 0.3, 0.35, 0.4]
-Scaling = ["width", "contracts"]
+Scaling = ["width","contracts"]
 MaxRiskTotal = 20000
 
 # start date - must start in/after Jan 6 '17 for MWF sPY options due to limite ddata

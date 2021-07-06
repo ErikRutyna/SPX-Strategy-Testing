@@ -1034,6 +1034,229 @@ def OpenICSSPX(Delta, Width, IndexOffset, DTE, Day, RoC):
 
     return [CreditP, CreditC], RiskT, [StrikeP, StrikeC], Active, [IndexP, IndexC], ExpDate, [SimulationP, SimulationC]
 
+def PCS_SPX2(TradeParameters, StartDate, ScalingMethod):
+    """Backtests selling M2W, W2F, and F2M put credit spreads on SPX and resulting gains/losses.
+
+    Extended Summary
+    ----------------
+    Backtests selling credit spreads at market open and letting them run and either buying to close, or letting
+    them expire for profit on the S&P500 index, SPX. We make an assumption that the EoD prices are equal to that
+    of market open and linearly interpolate in between on the option prices. If we hit our desired debit prices, or
+    a stop loss kicks in, then the spread is bought to close and the resulting premium is added to the account balance.
+    Taxes and missions as well as other fees are also considered.
+
+
+    Parameters
+    ----------
+    TradeParameters : np.array
+        [account balance, maximum risk % per trade, delta-value, maximum risk total]
+
+    StartDate : datetime
+        Initial starting date of the backtesting period, must be at or after Jan 5, 2016
+
+    ScalingMethod : string
+        A string that picks between "width" scaling (larger contract sizes) vs number of "contracts" 
+
+
+    Returns
+    -------
+    BacktestResults : np.array
+        Array containing the following information:
+        [final profit, total number of times traded, total number of spreads traded, ...
+        number of trades totally won, number of trades partially won, number of trades partially lost, ...
+        number of trades totally lost, amount spent on taxes, amount spent on comissions, ...
+        average return on collateral, number of simulated trades using average returns]
+    """
+    global SPXHistPrice, SPXPutChain
+    global SymCol, BidCol, OfrCol, DelCol, DayCol, ExpCol
+
+    # Load in all our data for testing
+    Folder = r"C:\Users\Erik\Desktop\devMisc\OptionsCalc\MasterData\SPY and SPX Options Data"
+    SPXHistPrice = "SPX_daily_prices.csv"
+    SPXPutChain = "Puts.csv"
+
+    # Full file path
+    SPXHistPrice = os.path.join(Folder, SPXHistPrice)
+    SPXPutChain = os.path.join(Folder, SPXPutChain)
+
+    # Output information
+    BacktestResults = np.zeros([11,1])
+    ReturnOnCollateral = np.empty([0])
+    Balance = [[],[]]
+
+    # Read in the data files
+    with open(SPXHistPrice) as DataFile:
+        SPXHistPrice = list(csv.reader(DataFile))
+
+    with open(SPXPutChain) as DataFile:
+        SPXPutChain = list(csv.reader(DataFile))
+
+    # Grab the needed columns from each data file
+    Header = np.array(SPXHistPrice[0])
+    # OpnCol = int(np.where(Header == "Open")[0])
+    ClsCol = int(np.where(Header == "close")[0])
+    HDTCol = int(np.where(Header == "date")[0])
+
+    Header = np.array(SPXPutChain[0])
+    DayCol = int(np.where(Header == "date")[0])
+    SymCol = int(np.where(Header == "symbol")[0])
+    BidCol = int(np.where(Header == "best_bid")[0])
+    OfrCol = int(np.where(Header == "best_offer")[0])
+    DelCol = int(np.where(Header == "delta")[0])
+    ExpCol = int(np.where(Header == "exdate")[0])
+
+    # Convert for speed
+    SPXHistPrice = np.array(SPXHistPrice[1:])
+    SPXPutChain = np.array(SPXPutChain[1:])
+
+    # Find the index of the starting date of the trades
+    SPXDateOffset = str(StartDate.strftime("%Y")) + \
+        str(StartDate.strftime("%m")) + str(StartDate.strftime("%d"))
+
+    for i in range(len(SPXHistPrice)):
+        if SPXHistPrice[i][HDTCol] == SPXDateOffset: SPXDateOffset = i; break
+
+    # Force our trades to begin on the M2W, W2F, F2M schedule
+    if StartDate.strftime("%a") == "Tue" or "Thu" or "Sun":
+        SPXDateOffset +=1
+    elif StartDate.strftime("%a") == "Sat":
+        SPXDateOffset +=2
+
+    # Comissions and fees per opening/closing a spread based off of TastyWorks
+    Fees = 2.54
+
+    # Initialize our position and misc parameters
+    Position = False
+    Simulation = False
+    PrevIndex = 0
+    ExpDate = StartDate - dt.timedelta(days=1)
+    WidthScaling = 5000
+
+    # Outer loop that goes from start date to Dec 31, 2020
+    for iDate in range(SPXDateOffset, len(SPXHistPrice)-1):
+
+        CurrentDay = dt.datetime(int(SPXHistPrice[iDate][HDTCol][0:4]), \
+            int(SPXHistPrice[iDate][HDTCol][4:6]), \
+                int(SPXHistPrice[iDate][HDTCol][6:]))
+        Weekday = CurrentDay.strftime("%a")
+
+        if ScalingMethod == "width":
+            if TradeParameters[0] > WidthScaling: 
+                Width = 1 + math.floor(TradeParameters[0]/WidthScaling)
+                if Width > 10: Width = 10
+            else: Width = 1
+        elif ScalingMethod == "contracts": Width = 1
+
+        if TradeParameters[0] < 0:
+            print(CurrentDay)
+            print("!WARNING! ----- Account is now negative balance, this is your margin call alert. ----- !WARNING!")
+            break
+
+        # Define out maximum risk for this trade cycle
+        MaxRisk =  TradeParameters[0] * TradeParameters[1]
+        if MaxRisk > 500: MaxRisk = 500
+        
+        # Close price of SPX and make out intraday array
+        SPXC = float(SPXHistPrice[iDate][ClsCol])
+        # SPXO = float(SPXHistPrice[iDate][OpnCol])
+
+        # Check the closing price and compare it to our break evens - see what our resulting profit is
+        if CurrentDay == ExpDate and Position:
+
+            # If we had to simulate the position, simulate the closing using the delta value (~ PoP)
+            if Simulation:
+                BacktestResults[10] += 1
+                Chance = random.random()
+                # If we're less than the delta, it will be a complete loss
+                if Chance <= TradeParameters[2]:
+                    Strike = SPXC * 2
+                # If nore, then it is a complete win
+                else:
+                    Strike = SPXC - 1
+
+            # Break even price 
+            Breakeven =  Strike - Credit/100
+            
+            # Calculate number of spreads and fees to be paid
+            NumberSpreads = (MaxRisk / Risk)
+            if NumberSpreads < 1: NumberSpreads = 1
+            else: NumberSpreads = math.floor(NumberSpreads)
+
+            TotalFees = NumberSpreads * Fees
+
+            BacktestResults[1] += 1 # add to times traded
+            BacktestResults[2] += NumberSpreads # add to number of spreads traded
+            BacktestResults[8] += TotalFees # add to amount paid in comissions
+
+
+            # Condition 1 - Full win with SPX closing above the short strike
+            if SPXC > Strike:
+                # Calculate the total profit of the trade
+                Profit =  Credit * NumberSpreads - TotalFees
+                BacktestResults[3] +=1
+
+            # Condition 2 - Partial win with SPX closing above breakeven
+            elif SPXC < Strike and SPXC > Breakeven:
+                # Calculate the total profit of the trade
+                Profit = (Credit - (Strike - SPXC)) * NumberSpreads - TotalFees
+                BacktestResults[4] +=1
+
+            # Condition 3 - Partial loss with SPX closing below breakeven but above long strike
+            elif (SPXC < Breakeven and SPXC > (Strike - 5*Width)): # or (SPXC < (Strike - 5*Width))
+                # Assume that with reasonable monitoring we can buy to close at 2.5x credit so
+                # no such thing as a full loss, only partial losses
+                # Profit =  (Risk) * NumberSpreads - TotalFees
+                # BacktestResults[5] +=1
+
+                # Calculate the total profit of the trade
+                Profit = (Credit - (Strike - SPXC)) * NumberSpreads - TotalFees
+                BacktestResults[5] +=1
+
+            # Condition 4 - Total loss with SPX closing below the long strike
+            elif SPXC < (Strike - 5*Width):
+                # Calculate the total profit of the trade
+                Profit = -Risk * NumberSpreads - TotalFees
+                S1 = "On " + str(CurrentDay.year) + "-" + str(CurrentDay.month) + "-" + str(CurrentDay.day)
+                S2 = " we had a total loss because SPY traded at: $" + str(SPXC)
+                S3 = " and our long-put was at a strike of $" + str(int(Strike-Width))
+                S4 = " and we lost $" + str(int(NumberSpreads * Risk))
+                print(S1 +  S2 + S3 + S4)
+                BacktestResults[6] +=1
+
+            # Calculate the amount of taxes to be paid
+            if Profit > 0: Taxes = Profit * 0.25
+            else: Taxes = 0
+            
+            # Add to our account balances
+            TradeParameters[0] += Profit - Taxes
+            BacktestResults[0] += Profit - Taxes
+            BacktestResults[7] += Taxes
+
+            # Add the % credit for collateral
+            if Simulation: PercentReturn = random.randrange(1, 10) / 100
+            else: PercentReturn = (Credit - Fees) / (500 * Width - Credit)
+            ReturnOnCollateral = np.append(ReturnOnCollateral, PercentReturn)
+
+            # Update our position
+            Position = False
+            Simulation = False
+
+            # Append the account balances
+            Balance[0].append(TradeParameters[0])
+            Balance[1].append(CurrentDay.strftime("%Y") + CurrentDay.strftime("%m") + CurrentDay.strftime("%d"))
+
+        if (Weekday == "Mon" or Weekday == "Wed") and not Position:
+            DTE = 2
+            Credit, Risk, Strike, Position, PrevIndex, ExpDate, Simulation = \
+                OpenPCSSPX(TradeParameters[2], Width, PrevIndex, DTE, CurrentDay, ReturnOnCollateral)
+
+        elif (Weekday == "Fri") and not Position:
+            DTE = 3
+            Credit, Risk, Strike, Position, PrevIndex, ExpDate, Simulation = \
+                OpenPCSSPX(TradeParameters[2], Width, PrevIndex, DTE, CurrentDay, ReturnOnCollateral)
+        
+    BacktestResults[9] = np.mean(ReturnOnCollateral) * 100
+    return BacktestResults, Balance
 
 def FetchPrice(Date, Strike, Expiration, LastIndex):
     """Finds the value of that specific SPX option on that given day - assuming it exists.
