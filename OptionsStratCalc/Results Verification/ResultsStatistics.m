@@ -324,6 +324,638 @@ PCS40.PL_Cstd = std(PCS40.PL_C);
 % Taxes and comissions are based on mean values
 
 %% CCS - Width Scaling
+% Final profit
+CCS15.P_W = [81070.21 ];
+CCS15.P_Wavg = mean(CCS15.P_W);
+CCS15.P_Wstd = std(CCS15.P_W);
+
+CCS20.P_W = [61667.68];
+CCS20.P_Wavg = mean(CCS20.P_W);
+CCS20.P_Wstd = std(CCS20.P_W);
+
+CCS25.P_W = [28943.28];
+CCS25.P_Wavg = mean(CCS25.P_W);
+CCS25.P_Wstd = std(CCS25.P_W);
+
+CCS30.P_W = [];
+CCS30.P_Wavg = mean(CCS30.P_W);
+CCS30.P_Wstd = std(CCS30.P_W);
+
+CCS35.P_W = [];
+CCS35.P_Wavg = mean(CCS35.P_W);
+CCS35.P_Wstd = std(CCS35.P_W);
+
+CCS40.P_W = [];
+CCS40.P_Wavg = mean(CCS40.P_W);
+CCS40.P_Wstd = std(CCS40.P_W);
+
+
+% Percent returns
+CCS15.PR_W = [7.7896 ];
+CCS15.PR_Wavg = mean(CCS15.PR_W);
+CCS15.PR_Wstd = std(CCS15.PR_W);
+
+CCS20.PR_W = [9.2003 ];
+CCS20.PR_Wavg = mean(CCS20.PR_W);
+CCS20.PR_Wstd = std(CCS20.PR_W);
+
+CCS25.PR_W = [13.4814 ];
+CCS25.PR_Wavg = mean(CCS25.PR_W);
+CCS25.PR_Wstd = std(CCS25.PR_W);
+
+CCS30.PR_W = [];
+CCS30.PR_Wavg = mean(CCS30.PR_W);
+CCS30.PR_Wstd = std(CCS30.PR_W);
+
+CCS35.PR_W = [];
+CCS35.PR_Wavg = mean(CCS35.PR_W);
+CCS35.PR_Wstd = std(CCS35.PR_W);
+
+CCS40.PR_W = [];
+CCS40.PR_Wavg = mean(CCS40.PR_W);
+CCS40.PR_Wstd = std(CCS40.PR_W);
+
+
+% Spreads traded
+CCS15.ST_W = [863 ];
+CCS15.ST_Wavg = mean(CCS15.ST_W);
+CCS15.ST_Wstd = std(CCS15.ST_W);
+
+CCS20.ST_W = [834];
+CCS20.ST_Wavg = mean(CCS20.ST_W);
+CCS20.ST_Wstd = std(CCS20.ST_W);
+
+CCS25.ST_W = [812];
+CCS25.ST_Wavg = mean(CCS25.ST_W);
+CCS25.ST_Wstd = std(CCS25.ST_W);
+
+CCS30.ST_W = [];
+CCS30.ST_Wavg = mean(CCS30.ST_W);
+CCS30.ST_Wstd = std(CCS30.ST_W);
+
+CCS35.ST_W = [];
+CCS35.ST_Wavg = mean(CCS35.ST_W);
+CCS35.ST_Wstd = std(CCS35.ST_W);
+
+CCS40.ST_W = [];
+CCS40.ST_Wavg = mean(CCS40.ST_W);
+CCS40.ST_Wstd = std(CCS40.ST_W);
+
+
+% Full wins
+CCS15.FW_W = [655];
+CCS15.FW_Wavg = mean(CCS15.FW_W);
+CCS15.FW_Wstd = std(CCS15.FW_W);
+
+CCS20.FW_W = [613 ];
+CCS20.FW_Wavg = mean(CCS20.FW_W);
+CCS20.FW_Wstd = std(CCS20.FW_W);
+
+CCS25.FW_W = [553];
+CCS25.FW_Wavg = mean(CCS25.FW_W);
+CCS25.FW_Wstd = std(CCS25.FW_W);
+
+CCS30.FW_W = [];
+CCS30.FW_Wavg = mean(CCS30.FW_W);
+CCS30.FW_Wstd = std(CCS30.FW_W);
+
+CCS35.FW_W = [];
+CCS35.FW_Wavg = mean(CCS35.FW_W);
+CCS35.FW_Wstd = std(CCS35.FW_W);
+
+CCS40.FW_W = [];
+CCS40.FW_Wavg = mean(CCS40.FW_W);
+CCS40.FW_Wstd = std(CCS40.FW_W);
+
+
+% Partial wins
+CCS15.PW_W = [1];
+CCS15.PW_Wavg = mean(CCS15.PW_W);
+CCS15.PW_Wstddev = std(CCS15.PW_W);
+
+CCS20.PW_W = [10 ];
+CCS20.PW_Wavg = mean(CCS20.PW_W);
+CCS20.PW_Wstd = std(CCS20.PW_W);
+
+CCS25.PW_W = [20];
+CCS25.PW_Wavg = mean(CCS25.PW_W);
+CCS25.PW_Wstd = std(CCS25.PW_W);
+
+CCS30.PW_W = [];
+CCS30.PW_Wavg = mean(CCS30.PW_W );
+CCS30.PW_Wstd = std(CCS30.PW_W );
+
+CCS35.PW_W = [];
+CCS35.PW_Wavg = mean(CCS35.PW_W);
+CCS35.PW_Wstd = std(CCS35.PW_W);
+
+CCS40.PW_W = [];
+CCS40.PW_Wavg = mean(CCS40.PW_W);
+CCS40.PW_Wstd = std(CCS40.PW_W);
+
+
+% Partial losses
+CCS15.PL_W = [124];
+CCS15.PL_Wavg = mean(CCS15.PL_W);
+CCS15.PL_Wstd = std(CCS15.PL_W);
+
+CCS20.PL_W = [157];
+CCS20.PL_Wavg = mean(CCS20.PL_W);
+CCS20.PL_Wstd = std(CCS20.PL_W);
+
+CCS25.PL_W = [207];
+CCS25.PL_Wavg = mean(CCS25.PL_W);
+CCS25.PL_Wstd = std(CCS25.PL_W);
+
+CCS30.PL_W = [];
+CCS30.PL_Wavg = mean(CCS30.PL_W);
+CCS30.PL_Wstd = std(CCS30.PL_W);
+
+CCS35.PL_W = [];
+CCS35.PL_Wavg = mean(CCS35.PL_W);
+CCS35.PL_Wstd = std(CCS35.PL_W);
+
+CCS40.PL_W = [];
+CCS40.PL_Wavg = mean(CCS40.PL_W);
+CCS40.PL_Wstd = std(CCS40.PL_W);
+
+% Taxes and comissions are based on mean values
+
 %% CCS - Contract Scaling
-%% ICS - Width Scaling
-%% ICS - Contract Scaling
+
+% Final profit
+CCS15.P_C = [155265.55 ];
+CCS15.P_Cavg = mean(CCS15.P_C);
+CCS15.P_Cstd = std(CCS15.P_C);
+
+CCS20.P_C = [254529.73 ];
+CCS20.P_Cavg = mean(CCS20.P_C);
+CCS20.P_Cstd = std(CCS20.P_C);
+
+CCS25.P_C = [22202.74 ];
+CCS25.P_Cavg = mean(CCS25.P_C);
+CCS25.P_Cstd = std(CCS25.P_C);
+
+CCS30.P_C = [-3035.1 ];
+CCS30.P_Cavg = mean(CCS30.P_C);
+CCS30.P_Cstd = std(CCS30.P_C);
+
+CCS35.P_C = [];
+CCS35.P_Cavg = mean(CCS35.P_C);
+CCS35.P_Cstd = std(CCS35.P_C);
+
+CCS40.P_C = [];
+CCS40.P_Cavg = mean(CCS40.P_C);
+CCS40.P_Cstd = std(CCS40.P_C);
+
+
+% Percent returns
+CCS15.PR_C = [8.5156  ];
+CCS15.PR_Cavg = mean(CCS15.PR_C);
+CCS15.PR_Cstd = std(CCS15.PR_C);
+
+CCS20.PR_C = [12.1399 ];
+CCS20.PR_Cavg = mean(CCS20.PR_C);
+CCS20.PR_Cstd = std(CCS20.PR_C);
+
+CCS25.PR_C = [16.2817 ];
+CCS25.PR_Cavg = mean(CCS25.PR_C);
+CCS25.PR_Cstd = std(CCS25.PR_C);
+
+CCS30.PR_C = [20.3446 ];
+CCS30.PR_Cavg = mean(CCS30.PR_C);
+CCS30.PR_Cstd = std(CCS30.PR_C);
+
+CCS35.PR_C = [];
+CCS35.PR_Cavg = mean(CCS35.PR_C);
+CCS35.PR_Cstd = std(CCS35.PR_C);
+
+CCS40.PR_C = [];
+CCS40.PR_Cavg = mean(CCS40.PR_C);
+CCS40.PR_Cstd = std(CCS40.PR_C);
+
+
+% Spreads traded
+CCS15.ST_C = [10120 ];
+CCS15.ST_Cavg = mean(CCS15.ST_C);
+CCS15.ST_Cstd = std(CCS15.ST_C);
+
+CCS20.ST_C = [14218 ];
+CCS20.ST_Cavg = mean(CCS20.ST_C);
+CCS20.ST_Cstd = std(CCS20.ST_C);
+
+CCS25.ST_C = [3123 ];
+CCS25.ST_Cavg = mean(CCS25.ST_C);
+CCS25.ST_Cstd = std(CCS25.ST_C);
+
+CCS30.ST_C = [591];
+CCS30.ST_Cavg = mean(CCS30.ST_C);
+CCS30.ST_Cstd = std(CCS30.ST_C);
+
+CCS35.ST_C = [];
+CCS35.ST_Cavg = mean(CCS35.ST_C);
+CCS35.ST_Cstd = std(CCS35.ST_C);
+
+CCS40.ST_C = [];
+CCS40.ST_Cavg = mean(CCS40.ST_C);
+CCS40.ST_Cstd = std(CCS40.ST_C);
+
+
+% Full wins
+CCS15.FW_C = [645 ];
+CCS15.FW_Cavg = mean(CCS15.FW_C);
+CCS15.FW_Cstd = std(CCS15.FW_C);
+
+CCS20.FW_C = [623 ];
+CCS20.FW_Cavg = mean(CCS20.FW_C);
+CCS20.FW_Cstd = std(CCS20.FW_C);
+
+CCS25.FW_C = [564];
+CCS25.FW_Cavg = mean(CCS25.FW_C);
+CCS25.FW_Cstd = std(CCS25.FW_C);
+
+CCS30.FW_C = [389 ];
+CCS30.FW_Cavg = mean(CCS30.FW_C);
+CCS30.FW_Cstd = std(CCS30.FW_C);
+
+CCS35.FW_C = [];
+CCS35.FW_Cavg = mean(CCS35.FW_C);
+CCS35.FW_Cstd = std(CCS35.FW_C);
+
+CCS40.FW_C = [];
+CCS40.FW_Cavg = mean(CCS40.FW_C);
+CCS40.FW_Cstd = std(CCS40.FW_C);
+
+
+% Partial wins
+CCS15.PW_C = [1 ];
+CCS15.PW_Cavg = mean(CCS15.PW_C);
+CCS15.PW_Cstddev = std(CCS15.PW_C);
+
+CCS20.PW_C = [5 ];
+CCS20.PW_Cavg = mean(CCS20.PW_C);
+CCS20.PW_Cstd = std(CCS20.PW_C);
+
+CCS25.PW_C = [8];
+CCS25.PW_Cavg = mean(CCS25.PW_C);
+CCS25.PW_Cstd = std(CCS25.PW_C);
+
+CCS30.PW_C = [7 ];
+CCS30.PW_Cavg = mean(CCS30.PW_C );
+CCS30.PW_Cstd = std(CCS30.PW_C );
+
+CCS35.PW_C = [];
+CCS35.PW_Cavg = mean(CCS35.PW_C);
+CCS35.PW_Cstd = std(CCS35.PW_C);
+
+CCS40.PW_C = [];
+CCS40.PW_Cavg = mean(CCS40.PW_C);
+CCS40.PW_Cstd = std(CCS40.PW_C);
+
+
+% Partial losses
+CCS15.PL_C = [134];
+CCS15.PL_Cavg = mean(CCS15.PL_C);
+CCS15.PL_Cstd = std(CCS15.PL_C);
+
+CCS20.PL_C = [152 ];
+CCS20.PL_Cavg = mean(CCS20.PL_C);
+CCS20.PL_Cstd = std(CCS20.PL_C);
+
+CCS25.PL_C = [208];
+CCS25.PL_Cavg = mean(CCS25.PL_C);
+CCS25.PL_Cstd = std(CCS25.PL_C);
+
+CCS30.PL_C = [190 ];
+CCS30.PL_Cavg = mean(CCS30.PL_C);
+CCS30.PL_Cstd = std(CCS30.PL_C);
+
+CCS35.PL_C = [];
+CCS35.PL_Cavg = mean(CCS35.PL_C);
+CCS35.PL_Cstd = std(CCS35.PL_C);
+
+CCS40.PL_C = [];
+CCS40.PL_Cavg = mean(CCS40.PL_C);
+CCS40.PL_Cstd = std(CCS40.PL_C);
+
+% Taxes and comissions are based on mean values
+
+%% IC - Width Scaling
+% Final profit
+IC15.P_W = [];
+IC15.P_Wavg = mean(IC15.P_W);
+IC15.P_Wstd = std(IC15.P_W);
+
+IC20.P_W = [];
+IC20.P_Wavg = mean(IC20.P_W);
+IC20.P_Wstd = std(IC20.P_W);
+
+IC25.P_W = [];
+IC25.P_Wavg = mean(IC25.P_W);
+IC25.P_Wstd = std(IC25.P_W);
+
+IC30.P_W = [];
+IC30.P_Wavg = mean(IC30.P_W);
+IC30.P_Wstd = std(IC30.P_W);
+
+IC35.P_W = [];
+IC35.P_Wavg = mean(IC35.P_W);
+IC35.P_Wstd = std(IC35.P_W);
+
+IC40.P_W = [];
+IC40.P_Wavg = mean(IC40.P_W);
+IC40.P_Wstd = std(IC40.P_W);
+
+
+% Percent returns
+IC15.PR_W = [];
+IC15.PR_Wavg = mean(IC15.PR_W);
+IC15.PR_Wstd = std(IC15.PR_W);
+
+IC20.PR_W = [];
+IC20.PR_Wavg = mean(IC20.PR_W);
+IC20.PR_Wstd = std(IC20.PR_W);
+
+IC25.PR_W = [];
+IC25.PR_Wavg = mean(IC25.PR_W);
+IC25.PR_Wstd = std(IC25.PR_W);
+
+IC30.PR_W = [];
+IC30.PR_Wavg = mean(IC30.PR_W);
+IC30.PR_Wstd = std(IC30.PR_W);
+
+IC35.PR_W = [];
+IC35.PR_Wavg = mean(IC35.PR_W);
+IC35.PR_Wstd = std(IC35.PR_W);
+
+IC40.PR_W = [];
+IC40.PR_Wavg = mean(IC40.PR_W);
+IC40.PR_Wstd = std(IC40.PR_W);
+
+
+% Spreads traded
+IC15.ST_W = [];
+IC15.ST_Wavg = mean(IC15.ST_W);
+IC15.ST_Wstd = std(IC15.ST_W);
+
+IC20.ST_W = [];
+IC20.ST_Wavg = mean(IC20.ST_W);
+IC20.ST_Wstd = std(IC20.ST_W);
+
+IC25.ST_W = [];
+IC25.ST_Wavg = mean(IC25.ST_W);
+IC25.ST_Wstd = std(IC25.ST_W);
+
+IC30.ST_W = [];
+IC30.ST_Wavg = mean(IC30.ST_W);
+IC30.ST_Wstd = std(IC30.ST_W);
+
+IC35.ST_W = [];
+IC35.ST_Wavg = mean(IC35.ST_W);
+IC35.ST_Wstd = std(IC35.ST_W);
+
+IC40.ST_W = [];
+IC40.ST_Wavg = mean(IC40.ST_W);
+IC40.ST_Wstd = std(IC40.ST_W);
+
+
+% Full wins
+IC15.FW_W = [];
+IC15.FW_Wavg = mean(IC15.FW_W);
+IC15.FW_Wstd = std(IC15.FW_W);
+
+IC20.FW_W = [];
+IC20.FW_Wavg = mean(IC20.FW_W);
+IC20.FW_Wstd = std(IC20.FW_W);
+
+IC25.FW_W = [];
+IC25.FW_Wavg = mean(IC25.FW_W);
+IC25.FW_Wstd = std(IC25.FW_W);
+
+IC30.FW_W = [];
+IC30.FW_Wavg = mean(IC30.FW_W);
+IC30.FW_Wstd = std(IC30.FW_W);
+
+IC35.FW_W = [];
+IC35.FW_Wavg = mean(IC35.FW_W);
+IC35.FW_Wstd = std(IC35.FW_W);
+
+IC40.FW_W = [];
+IC40.FW_Wavg = mean(IC40.FW_W);
+IC40.FW_Wstd = std(IC40.FW_W);
+
+
+% Partial wins
+IC15.PW_W = [];
+IC15.PW_Wavg = mean(IC15.PW_W);
+IC15.PW_Wstddev = std(IC15.PW_W);
+
+IC20.PW_W = [];
+IC20.PW_Wavg = mean(IC20.PW_W);
+IC20.PW_Wstd = std(IC20.PW_W);
+
+IC25.PW_W = [];
+IC25.PW_Wavg = mean(IC25.PW_W);
+IC25.PW_Wstd = std(IC25.PW_W);
+
+IC30.PW_W = [];
+IC30.PW_Wavg = mean(IC30.PW_W );
+IC30.PW_Wstd = std(IC30.PW_W );
+
+IC35.PW_W = [];
+IC35.PW_Wavg = mean(IC35.PW_W);
+IC35.PW_Wstd = std(IC35.PW_W);
+
+IC40.PW_W = [];
+IC40.PW_Wavg = mean(IC40.PW_W);
+IC40.PW_Wstd = std(IC40.PW_W);
+
+
+% Partial losses
+IC15.PL_W = [];
+IC15.PL_Wavg = mean(IC15.PL_W);
+IC15.PL_Wstd = std(IC15.PL_W);
+
+IC20.PL_W = [];
+IC20.PL_Wavg = mean(IC20.PL_W);
+IC20.PL_Wstd = std(IC20.PL_W);
+
+IC25.PL_W = [];
+IC25.PL_Wavg = mean(IC25.PL_W);
+IC25.PL_Wstd = std(IC25.PL_W);
+
+IC30.PL_W = [];
+IC30.PL_Wavg = mean(IC30.PL_W);
+IC30.PL_Wstd = std(IC30.PL_W);
+
+IC35.PL_W = [];
+IC35.PL_Wavg = mean(IC35.PL_W);
+IC35.PL_Wstd = std(IC35.PL_W);
+
+IC40.PL_W = [];
+IC40.PL_Wavg = mean(IC40.PL_W);
+IC40.PL_Wstd = std(IC40.PL_W);
+
+% Taxes and comissions are based on mean values
+
+%% IC - Contract Scaling
+
+% Final profit
+IC15.P_C = [];
+IC15.P_Cavg = mean(IC15.P_C);
+IC15.P_Cstd = std(IC15.P_C);
+
+IC20.P_C = [];
+IC20.P_Cavg = mean(IC20.P_C);
+IC20.P_Cstd = std(IC20.P_C);
+
+IC25.P_C = [];
+IC25.P_Cavg = mean(IC25.P_C);
+IC25.P_Cstd = std(IC25.P_C);
+
+IC30.P_C = [];
+IC30.P_Cavg = mean(IC30.P_C);
+IC30.P_Cstd = std(IC30.P_C);
+
+IC35.P_C = [];
+IC35.P_Cavg = mean(IC35.P_C);
+IC35.P_Cstd = std(IC35.P_C);
+
+IC40.P_C = [];
+IC40.P_Cavg = mean(IC40.P_C);
+IC40.P_Cstd = std(IC40.P_C);
+
+
+% Percent returns
+IC15.PR_C = [];
+IC15.PR_Cavg = mean(IC15.PR_C);
+IC15.PR_Cstd = std(IC15.PR_C);
+
+IC20.PR_C = [];
+IC20.PR_Cavg = mean(IC20.PR_C);
+IC20.PR_Cstd = std(IC20.PR_C);
+
+IC25.PR_C = [];
+IC25.PR_Cavg = mean(IC25.PR_C);
+IC25.PR_Cstd = std(IC25.PR_C);
+
+IC30.PR_C = [];
+IC30.PR_Cavg = mean(IC30.PR_C);
+IC30.PR_Cstd = std(IC30.PR_C);
+
+IC35.PR_C = [];
+IC35.PR_Cavg = mean(IC35.PR_C);
+IC35.PR_Cstd = std(IC35.PR_C);
+
+IC40.PR_C = [];
+IC40.PR_Cavg = mean(IC40.PR_C);
+IC40.PR_Cstd = std(IC40.PR_C);
+
+
+% Spreads traded
+IC15.ST_C = [];
+IC15.ST_Cavg = mean(IC15.ST_C);
+IC15.ST_Cstd = std(IC15.ST_C);
+
+IC20.ST_C = [];
+IC20.ST_Cavg = mean(IC20.ST_C);
+IC20.ST_Cstd = std(IC20.ST_C);
+
+IC25.ST_C = [];
+IC25.ST_Cavg = mean(IC25.ST_C);
+IC25.ST_Cstd = std(IC25.ST_C);
+
+IC30.ST_C = [];
+IC30.ST_Cavg = mean(IC30.ST_C);
+IC30.ST_Cstd = std(IC30.ST_C);
+
+IC35.ST_C = [];
+IC35.ST_Cavg = mean(IC35.ST_C);
+IC35.ST_Cstd = std(IC35.ST_C);
+
+IC40.ST_C = [];
+IC40.ST_Cavg = mean(IC40.ST_C);
+IC40.ST_Cstd = std(IC40.ST_C);
+
+
+% Full wins
+IC15.FW_C = [];
+IC15.FW_Cavg = mean(IC15.FW_C);
+IC15.FW_Cstd = std(IC15.FW_C);
+
+IC20.FW_C = [];
+IC20.FW_Cavg = mean(IC20.FW_C);
+IC20.FW_Cstd = std(IC20.FW_C);
+
+IC25.FW_C = [];
+IC25.FW_Cavg = mean(IC25.FW_C);
+IC25.FW_Cstd = std(IC25.FW_C);
+
+IC30.FW_C = [];
+IC30.FW_Cavg = mean(IC30.FW_C);
+IC30.FW_Cstd = std(IC30.FW_C);
+
+IC35.FW_C = [];
+IC35.FW_Cavg = mean(IC35.FW_C);
+IC35.FW_Cstd = std(IC35.FW_C);
+
+IC40.FW_C = [];
+IC40.FW_Cavg = mean(IC40.FW_C);
+IC40.FW_Cstd = std(IC40.FW_C);
+
+
+% Partial wins
+IC15.PW_C = [];
+IC15.PW_Cavg = mean(IC15.PW_C);
+IC15.PW_Cstddev = std(IC15.PW_C);
+
+IC20.PW_C = [];
+IC20.PW_Cavg = mean(IC20.PW_C);
+IC20.PW_Cstd = std(IC20.PW_C);
+
+IC25.PW_C = [];
+IC25.PW_Cavg = mean(IC25.PW_C);
+IC25.PW_Cstd = std(IC25.PW_C);
+
+IC30.PW_C = [];
+IC30.PW_Cavg = mean(IC30.PW_C );
+IC30.PW_Cstd = std(IC30.PW_C );
+
+IC35.PW_C = [];
+IC35.PW_Cavg = mean(IC35.PW_C);
+IC35.PW_Cstd = std(IC35.PW_C);
+
+IC40.PW_C = [];
+IC40.PW_Cavg = mean(IC40.PW_C);
+IC40.PW_Cstd = std(IC40.PW_C);
+
+
+% Partial losses
+IC15.PL_C = [];
+IC15.PL_Cavg = mean(IC15.PL_C);
+IC15.PL_Cstd = std(IC15.PL_C);
+
+IC20.PL_C = [];
+IC20.PL_Cavg = mean(IC20.PL_C);
+IC20.PL_Cstd = std(IC20.PL_C);
+
+IC25.PL_C = [];
+IC25.PL_Cavg = mean(IC25.PL_C);
+IC25.PL_Cstd = std(IC25.PL_C);
+
+IC30.PL_C = [];
+IC30.PL_Cavg = mean(IC30.PL_C);
+IC30.PL_Cstd = std(IC30.PL_C);
+
+IC35.PL_C = [];
+IC35.PL_Cavg = mean(IC35.PL_C);
+IC35.PL_Cstd = std(IC35.PL_C);
+
+IC40.PL_C = [];
+IC40.PL_Cavg = mean(IC40.PL_C);
+IC40.PL_Cstd = std(IC40.PL_C);
+
+% Taxes and comissions are based on mean values
+
+
+
