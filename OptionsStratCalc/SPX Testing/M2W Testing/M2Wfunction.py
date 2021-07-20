@@ -47,16 +47,17 @@ def SPX_M2W(Filename):
     DailyChain.reverse()
 
     MaxIndex = len(DailyChain)
-    for i in range(len(DailyChain), 1):
+    for i in range(1, len(DailyChain)):
         if DailyChain[i][0] == "15:57":
             MaxIndex = i
             break
     
     # Find spot price at 15:59 EST
     Spot = 0
-    for i in range(MaxIndex, 1):
+    for i in range(1, MaxIndex):
         if DailyChain[i][0] == "15:59":
             Spot = float(DailyChain[i][6])
+            break
 
 
     # --- NOTE FOR GEO ---
@@ -67,7 +68,7 @@ def SPX_M2W(Filename):
     IFUList = WriteIFU(DailyChain, Spot, MaxIndex, ExpDate)
     # WriteIFD(DailyChain, Spot, MaxIndex, ExpDate)
 
-    FullList = [IFUList]
+    FullList = IFUList
     return FullList
 
 def WriteIFU(OptionsChain, Spot, MaxIndex, ExpDate):
@@ -105,7 +106,7 @@ def WriteIFU(OptionsChain, Spot, MaxIndex, ExpDate):
          difference to short call, "momentum"]
     """
     # Strikes for the M2W IF using the closest strike above where SPX is trading
-    ShortStrike = math.ceil(Spot / 5)
+    ShortStrike = math.ceil(Spot / 5) * 5
     LongCall = ShortStrike + 5
     LongPut = ShortStrike - 5
 
@@ -117,20 +118,20 @@ def WriteIFU(OptionsChain, Spot, MaxIndex, ExpDate):
     LongCallDebit = 0
 
     # Grab the four legs of the trade & the closing price (spot at 16:00 EST)
-    for i in range(MaxIndex, 1):
+    for i in range(1, MaxIndex):
         if OptionsChain[i][0] == "15:58": PreviousSpot = float(OptionsChain[i][6])
         if OptionsChain[i][0] == "16:00": SPXClose = float(OptionsChain[i][6])
         if OptionsChain[i][0] == "15:59" and OptionsChain[i][1] == ExpDate and\
-            OptionsChain[i][2] == ShortStrike and OptionsChain[i][3] == "P":
+            OptionsChain[i][2] == str(ShortStrike) and OptionsChain[i][3] == "P":
                 ShortPutCredit =  (float(OptionsChain[i][4]) + float(OptionsChain[i][5])) / 2
         if OptionsChain[i][0] == "15:59" and OptionsChain[i][1] == ExpDate and\
-            OptionsChain[i][2] == ShortStrike and OptionsChain[i][3] == "C":
+            OptionsChain[i][2] == str(ShortStrike) and OptionsChain[i][3] == "C":
                 ShortCallCredit =  (float(OptionsChain[i][4]) + float(OptionsChain[i][5])) / 2
         if OptionsChain[i][0] == "15:59" and OptionsChain[i][1] == ExpDate and\
-            OptionsChain[i][2] == LongPut and OptionsChain[i][3] == "P":
+            OptionsChain[i][2] == str(LongPut) and OptionsChain[i][3] == "P":
                 LongPutDebit =  (float(OptionsChain[i][4]) + float(OptionsChain[i][5])) / 2
         if OptionsChain[i][0] == "15:59" and OptionsChain[i][1] == ExpDate and\
-            OptionsChain[i][2] == LongCall and OptionsChain[i][3] == "C":
+            OptionsChain[i][2] == str(LongCall) and OptionsChain[i][3] == "C":
                 LongCallDebit =  (float(OptionsChain[i][4]) + float(OptionsChain[i][5])) / 2
 
     # Find the total amount of credit for the IF as well as the risk
@@ -157,14 +158,15 @@ def WriteIFU(OptionsChain, Spot, MaxIndex, ExpDate):
     elif SPXClose > UpperBE or SPXClose < LowerBE:
         Profit = Risk - TotalCredit
 
+    Profit = round(Profit, 2)
 
     # Parameter checks - difference to strike & "momentum"
     
     # Parameter 1: abs(Spot - Strike) < $1.50
     if abs(Spot - ShortStrike) < 1.50: P1 = 1
     else: P1 = 0
-    Diff2StrikeP = ShortStrike - Spot
-    Diff2StrikeC = ShortStrike - Spot
+    Diff2StrikeP = round(ShortStrike - Spot, 2)
+    Diff2StrikeC = round(ShortStrike - Spot, 2)
 
     # Parameter 2: (Spot - Spot @ 15:58)
     P2 = PreviousSpot - Spot
