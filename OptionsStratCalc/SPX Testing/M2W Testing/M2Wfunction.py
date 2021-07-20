@@ -122,17 +122,21 @@ def WriteIFU(OptionsChain, Spot, MaxIndex, ExpDate):
         if OptionsChain[i][0] == "15:58": PreviousSpot = float(OptionsChain[i][6])
         if OptionsChain[i][0] == "16:00": SPXClose = float(OptionsChain[i][6])
         if OptionsChain[i][0] == "15:59" and OptionsChain[i][1] == ExpDate and\
-            OptionsChain[i][2] == str(ShortStrike) and OptionsChain[i][3] == "P":
-                ShortPutCredit =  (float(OptionsChain[i][4]) + float(OptionsChain[i][5])) / 2
+            OptionsChain[i][2] == str(ShortStrike) and OptionsChain[i][3] == "P"\
+                and OptionsChain[i][11] == "SPXW":
+                    ShortPutCredit =  (float(OptionsChain[i][4]) + float(OptionsChain[i][5])) / 2
         if OptionsChain[i][0] == "15:59" and OptionsChain[i][1] == ExpDate and\
-            OptionsChain[i][2] == str(ShortStrike) and OptionsChain[i][3] == "C":
-                ShortCallCredit =  (float(OptionsChain[i][4]) + float(OptionsChain[i][5])) / 2
+            OptionsChain[i][2] == str(ShortStrike) and OptionsChain[i][3] == "C"\
+                and OptionsChain[i][11] == "SPXW":
+                    ShortCallCredit =  (float(OptionsChain[i][4]) + float(OptionsChain[i][5])) / 2
         if OptionsChain[i][0] == "15:59" and OptionsChain[i][1] == ExpDate and\
-            OptionsChain[i][2] == str(LongPut) and OptionsChain[i][3] == "P":
-                LongPutDebit =  (float(OptionsChain[i][4]) + float(OptionsChain[i][5])) / 2
+            OptionsChain[i][2] == str(LongPut) and OptionsChain[i][3] == "P"\
+                and OptionsChain[i][11] == "SPXW":
+                    LongPutDebit =  (float(OptionsChain[i][4]) + float(OptionsChain[i][5])) / 2
         if OptionsChain[i][0] == "15:59" and OptionsChain[i][1] == ExpDate and\
-            OptionsChain[i][2] == str(LongCall) and OptionsChain[i][3] == "C":
-                LongCallDebit =  (float(OptionsChain[i][4]) + float(OptionsChain[i][5])) / 2
+            OptionsChain[i][2] == str(LongCall) and OptionsChain[i][3] == "C"\
+                and OptionsChain[i][11] == "SPXW":
+                    LongCallDebit =  (float(OptionsChain[i][4]) + float(OptionsChain[i][5])) / 2
 
     # Find the total amount of credit for the IF as well as the risk
     TotalCredit = ShortPutCredit + ShortCallCredit - LongPutDebit - LongCallDebit
