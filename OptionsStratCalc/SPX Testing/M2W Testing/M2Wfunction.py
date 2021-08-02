@@ -1,13 +1,9 @@
-import concurrent
 import csv
 import datetime
-import math
 import datetime as dt
-import time
-
-import numpy as np
-from os import walk
+import math
 import os.path
+import time
 
 
 #    0         1          2        3     4     5       6      7
@@ -291,20 +287,20 @@ def getTimesForStrat(strat, start, stop=None):
     startTime = datetime.datetime.strptime(start, '%H:%M')
 
     # IFDM2W, IFUM2W, IFCM2W, IFPM2W, DoubleIFM2W, ICM2W
-    if strat == 'IFDM2W':
-        tempTimeList = ['15:59']
-    elif strat == 'IFU':
-        tempTimeList = ['15:59']
-    elif strat == 'IFPM2W':
-        tempTimeList = ['15:59']
-    elif strat == 'IFCM2W':
-        tempTimeList = ['15:59']
-    elif strat == 'DoubleIFM2W':
-        tempTimeList = ['15:59']
-    elif strat == 'ICM2W':
-        tempTimeList = ['15:59']
+    if strat in ['IFDM2W', 'IFUM2W', 'IFPM2W', 'IFCM2W', 'DoubleIFM2W', 'ICM2W']:
+        tempTimeList = [start]
+
+    if stop is not None:
+        tempTimeList.append(stop)
 
     return tempTimeList
+
+
+def getReturns(profit, risk, width):
+    if risk > 0:
+        return profit / risk
+    else:
+        return profit / width
 
 
 def SPX_M2W_G(Date):
@@ -349,16 +345,28 @@ def SPX_M2W_G2(strat, width, date, size, startTime, stopTime=None):
             and (pricesMap is not None and len(pricesMap) > 0) \
             and (timeList is not None and len(timeList) > 0):
 
-        totalCredit, optionSpreadPnL, profit = runStratFromtStartTimeToClose(optionSnapshotMap, stratStrikeList, pricesMap, startTime)
+        totalCredit, totalDebit, optionSpreadPnL, profit = runStratFromStartTimeToStopTime(optionSnapshotMap, stratStrikeList,
+                                                                             pricesMap, startTime, stopTime)
 
         if strat == 'DoubleIFM2W':
-            width = width * 3
+            width = 15
 
-        if totalCredit is not None:
+        if totalCredit is not None and totalCredit < 0: #and a credit based trade if credit is positive, on a debit trade no need to check
             risk = totalCredit + width
 
-            tradeInformation = [date, strat, profit, -totalCredit, risk, pricesMap.get('15:57'), pricesMap.get('15:58'),
+            tradeInformation = [date, strat, profit, -totalCredit, risk, totalDebit, pricesMap.get('15:58'),
                                 pricesMap.get(startTime), pricesMap.get('16:00'), width]
+
+            rtrn = getReturns(profit, risk, width)
+
+            tradeInformation.append(rtrn)
+
+            if rtrn >= 0:
+                tradeInformation.append(rtrn)
+                tradeInformation.append(None)
+            else:
+                tradeInformation.append(None)
+                tradeInformation.append(rtrn)
 
             for strike in stratStrikeList:
                 tradeInformation.append(strike[0])
@@ -371,30 +379,44 @@ def SPX_M2W_G2(strat, width, date, size, startTime, stopTime=None):
 #    0         1          2        3     4     5       6      7
 # strike,option_type,   bid,     ask,  delta,gamma,  theta,  vega
 # 750,        C,       1346.2, 1363.4,   1,     ,   -0.0004,
-def runStratFromtStartTimeToClose(optionSnapshotMap, stratStrikeList, pricesMap, startTime):
+def runStratFromStartTimeToStopTime(optionSnapshotMap, stratStrikeList, pricesMap, startTime, stopTime):
     optionLegsList = []
+    totalDebit = None
+    optionSpreadPnL = None
 
     for strike in stratStrikeList:
         if strike is None or len(strike) < 3:
             print()
 
-        optionLegsList.append([getOptionRowForTimeStrikeType(optionSnapshotMap, startTime, strike[0], strike[1]), strike[2]])
+        optionLegsList.append(
+            [getOptionRowForTimeStrikeType(optionSnapshotMap, startTime, strike[0], strike[1]), strike[2]])
 
     for optionRow in optionLegsList:
         if optionRow[0] is None:
-            return None, None, None
+            return None, None, None, None
 
     totalCredit = getTotalCostForSpread(optionLegsList)
 
     if totalCredit is not None:
-        spxClose = float(pricesMap.get('16:00'))
+        if stopTime is None:
+            spxClose = float(pricesMap.get('16:00'))
 
-        optionSpreadPnL = calculateOptionMetrics(optionLegsList, spxClose)
-        profit = optionSpreadPnL - totalCredit
+            optionSpreadPnL = calculateOptionMetrics(optionLegsList, spxClose)
+            profit = optionSpreadPnL - totalCredit
+        else:
+            optionLegsList = []
 
-        return totalCredit, optionSpreadPnL, profit
+            for strike in stratStrikeList:
+                optionLegsList.append(
+                    [getOptionRowForTimeStrikeType(optionSnapshotMap, stopTime, strike[0], strike[1]), strike[2]])
+
+            totalDebit = getTotalCostForSpread(optionLegsList)
+
+            profit = totalDebit - totalCredit
+
+        return totalCredit, totalDebit, optionSpreadPnL, profit,
     else:
-        return None, None, None
+        return None, None, None, None
 
 
 def WriteDoubleIF(optionSnapshotMap, pricesMap, ExpDate):
@@ -958,7 +980,7 @@ def main():
         for zeroDTE in zeroDTEs:
             resultsMain.append(SPX_M2W_G2(strat=strat, width=5, date=zeroDTE, size=1, startTime='15:59', stopTime=None))
 
-    #for zeroDTE in zeroDTEs:
+    # for zeroDTE in zeroDTEs:
     #    resultsMain.append(SPX_M2W_G(zeroDTE))
 
     totalMapTime = time.time() - start2
@@ -974,13 +996,18 @@ def main():
         if result is not None:
             resultsFinal.append(result)
 
-    with open("outR.csv", "w", newline="\n") as f:
+    with open("outM2W.csv", "w", newline="\n") as f:
         writer = csv.writer(f)
-        writer.writerows(
-            [['date', 'trade type (IF/IC)', 'P/L', 'Credit', 'Risk', 'Spot@15:57', 'Spot@15:58', 'Spot@15:59',
-              'Spot@16:00',
-              'short call strike', 'long call strike', 'short put strike', 'long put strike', 'check 1',
-              'difference to short put', 'difference to short call', 'momentum']])
+        headers = ['Date', 'Trade Type', 'P/L', 'Credit', 'Risk', 'Spot@15:57', 'Spot@15:58', 'Spot@15:59',
+                   'Spot@16:00', 'Width', 'Return', 'Positive Return', 'Negative Return']
+
+        differenceInSize = int((len(max(resultsFinal, key=len)) - len(headers)) / 3)
+        for i in range(1, differenceInSize + 1):
+            headers.append('Strike ' + str(i))
+            headers.append('Strike ' + str(i) + ' Option Type')
+            headers.append('Strike ' + str(i) + ' Size')
+
+        writer.writerows([headers])
         writer.writerows(resultsFinal)
 
     # print(results)

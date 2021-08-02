@@ -4,3 +4,6 @@ All of the code here is to be used with a specially organized/filtered data set 
 # Testing Results
 Results can be found in summarized documents known as The Gourd-erly Report. A link to a Google Drive folder containing all issues of it can be found here:
 https://drive.google.com/drive/folders/1QUgbOwqzQCd_tf0cLnDw_wBv4wM-ejt-?usp=sharing
+
+# Contact Information
+If you have any questions/comments/concerns regarding this code and/or the information presented in the results, please reach out to myself, Erik Rutyna via email at gourdcapital@gmail.com.
