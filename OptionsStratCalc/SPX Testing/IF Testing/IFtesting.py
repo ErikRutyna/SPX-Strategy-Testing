@@ -1,4 +1,4 @@
-import concurrent
+import concurrent.futures
 import csv
 import datetime
 import math
@@ -7,36 +7,67 @@ import time
 
 
 def SPX_SL_TP_Multi():
-    resultsMain = None
+    """Runs the SPX strategy with a stop-loss or price-target in multi-threading.
+
+    Extended Summary
+    ----------------
+    Runs a generic SPX strategy developed in SPX_SL_SP that is able to run for a specific
+    price target and/or stop loss. This "runner" function runs the strategy in a multi-threaded
+    form in order to speed up the processing time.
+
+    Returns
+    -------
+    resultsMain : list
+        Produces a list in the format specified by SPX_SL_SP that can be written to a data file,
+        or manipulated for visualization
+    """
+    resultsMain = []
     allExpiration = getExpirationDates(ticker='SPXW', isZeroDte=True)
 
     multi = True
 
     if multi:
-        with concurrent.futures.ProcessPoolExecutor(10) as executor:
+        with concurrent.futures.ProcessPoolExecutor(4) as executor:
             resultsMain = list(executor.map(SPX_SL_TP, allExpiration))
     else:
         for expiration in allExpiration:
             print(expiration)
-            SPX_SL_TP(expiration)
+            resultsMain.append(SPX_SL_TP(expiration))
 
+    #print(resultsMain)
     return resultsMain
 
 
 def SPX_SL_TP(expiration):
+    """Runs the SPX strategy for the given expiration date
+
+    Parameters
+    ----------
+    expiration : [type]
+        [description]
+
+    Returns
+    -------
+    results : list
+        List of data that's a list of the specified results for the strategy. 
+        Has the following form:
+        []
+
+    """
     print(expiration)
     ticker = 'SPXW'
-    startTime = '10:00'
-    stopTime = None#'12:00'
-    width = 50
+    startTime = '09:31'
+    stopTime = '11:00'
+    # Width of the IF
+    width = 25
     start = '2016-09-01'
-    end = '2021-07-07'
+    end = '2016-09-02'
     dynamicTP = False
 
-    timeList = ['09:31', '09:35', '09:40', '09:45']
+    timeList = ['09:31', '09:45', '10:00']
 
-    while '12:00' not in timeList:
-        timeList.append(addMinutesToTimeAsStringReturnString(timeList[-1], 15))
+    #while '12:00' not in timeList:
+    #    timeList.append(addMinutesToTimeAsStringReturnString(timeList[-1], 15))
 
     widthStart = 10
     widthMax = 50
@@ -47,8 +78,8 @@ def SPX_SL_TP(expiration):
     for i in range(widthStart, widthMax - 1, widthIncrement):
         widthList.append(i)
 
-    stopLossStart = -2
-    stopLossStop = -4
+    stopLossStart = -1
+    stopLossStop = -3
     stopLossIncrement = -1
 
     stopLossList = []
@@ -63,8 +94,8 @@ def SPX_SL_TP(expiration):
         takeProfitStop = 100
         takeProfitIncrement = 5
     else:
-        takeProfitStart = 13
-        takeProfitStop = 13
+        takeProfitStart = 1
+        takeProfitStop = 3
         takeProfitIncrement = 1
 
     for i in range(takeProfitStart, takeProfitStop + 1, takeProfitIncrement):
@@ -88,10 +119,12 @@ def SPX_SL_TP(expiration):
 
             optionSnapshotMap.update({t: tempMap})
     else:
-        tempMap = makeOptionSnapshotMapFromShortType(rootFilter=ticker, dateFilter=expiration,
-                                                     timeFilter=startTime, expirationFilter=expiration)
+        for t in timeList:
 
-        optionSnapshotMap.update({startTime: tempMap})
+            tempMap = makeOptionSnapshotMapFromShortType(rootFilter=ticker, dateFilter=expiration,
+                                                        timeFilter=startTime, expirationFilter=expiration)
+
+            optionSnapshotMap.update({t: tempMap})
 
         tempMap = makeOptionSnapshotMapFromShortType(rootFilter=ticker, dateFilter=expiration,
                                                      timeFilter=stopTime, expirationFilter=expiration)
@@ -144,7 +177,7 @@ def SPX_SL_TP(expiration):
 
 def getPricesForDate(rootFilter, dateFilter):
     # H:\Tickers\SPXW\2017-01-19\2017-01-19_prices.csv
-    rootDirectory = 'H:/Tickers/'
+    rootDirectory = 'C:/Users/Admin/Downloads/'
     pricesMap = {}
     fileName = rootDirectory + rootFilter + '/' + dateFilter + '/' + dateFilter + '_prices.csv'
 
@@ -243,6 +276,31 @@ def getReturns(profit, risk, width):
 
 
 def ClosePredic(T59, T58, T57):
+    """Uses numerical integration to approximate the closing price of SPX on a given day.
+
+    Extended Summary
+    ----------------
+    Uses a Predictor-Corrector method and the last 3 minutes' prices at the 15:XX:00 mark
+    to predict what SPX is going to close at. 
+
+    Parameters
+    ----------
+    T59 : float
+        Price of SPX at 15:59:00 on the given day
+        
+        
+    T58 : float
+        Price of SPX at 15:58:00 on the given day
+
+    T57 : float
+        Price of SPX at 15:58:00 on the given day
+
+
+    Returns
+    -------
+    SPXClosePredic : float
+        The predicted closing price of SPX
+    """
     T59D1, T59D2 = DerivsCalc(T59, T58, T57)
 
     ApproxClose = T59 + T59D1 + T59D2
@@ -253,9 +311,44 @@ def ClosePredic(T59, T58, T57):
     return SPXClosePredic
 
 
-def DerivsCalc(T59, T58, T57):
-    FirstDeriv = (3 * T59 - 4 * T58 + T57) / 2
-    SecondDeriv = (T59 - 2 * T58 + T57)
+def DerivsCalc(Nought, Nought1, Nought2):
+    """
+    Calculates the numerical derivatives from the 3 given data points.
+
+    Extended Summary
+    ----------------
+    Calculates the numerical first and second derivatives for at point
+    nought using the two time steps previous in time, nought-deltaT (Nought1),
+    and nought-2deltaT (Nought2). The two schemes used are left-sided second order
+    accurate for the first derivative, and second order central first order accurate
+    for the second derivative.
+
+    Parameters
+    ----------
+    Nought: float
+        The point at which you want to take derivatives at
+
+    Nought1: float
+        One time-step back in time from the point nought (Nought - deltaT)
+
+    Nought2: float
+        Two time-steps back in time from the point nought (Nought - 2*deltaT)
+
+    Returns
+    -------
+    FirstDeriv: float
+        First derivative at the point nought
+
+    SecondDeriv: float
+        Second derivative at the point nought
+
+    
+    
+    """
+    # First derivative, second order, Left-Sided Difference Scheme
+    FirstDeriv = (3 * Nought - 4 * Nought1 + Nought2) / 2
+    # Second Derivative, First Order, Central Difference scheme
+    SecondDeriv = (Nought - 2 * Nought1 + Nought2)
     return FirstDeriv, SecondDeriv
 
 
@@ -401,10 +494,14 @@ def generateFullDayOfTimes():
 
 def makeOptionSnapshotMapFromShortType(rootFilter=None, dateFilter=None, timeFilter=None, expirationFilter=None):
     # H:\Tickers\SPXW\2017-01-19\0931\2017-01-23
-    rootDirectory = 'H:/Tickers/'
+    rootDirectory = 'C:/Users/Admin/Downloads/'
     optionSnapshotMap = {}
-    fileName = rootDirectory + rootFilter + '/' + dateFilter + '/' + timeFilter.replace(':', '') + '/' + \
-               expirationFilter + '/' + 'ShortUnderlyingOptionsIntervals_60sec_calcs_oi_level2_' + dateFilter + '.csv'
+    if int(timeFilter[0]) == 9:
+        fileName = rootDirectory + rootFilter + '/' + dateFilter + '/' + timeFilter.replace('9:', '09') + '/' + \
+            expirationFilter + '/' + 'ShortUnderlyingOptionsIntervals_60sec_calcs_oi_level2_' + dateFilter + '.csv'
+    else:
+        fileName = rootDirectory + rootFilter + '/' + dateFilter + '/' + timeFilter.replace(':', '') + '/' + \
+                expirationFilter + '/' + 'ShortUnderlyingOptionsIntervals_60sec_calcs_oi_level2_' + dateFilter + '.csv'
 
     if os.path.isfile(fileName):
         with open(fileName) as f:
@@ -428,7 +525,7 @@ def makeOptionSnapshotMapFromShortType(rootFilter=None, dateFilter=None, timeFil
 
 def getExpirationDates(ticker, dateFilter=None, isZeroDte=None):
     expirationDates = []
-    tickerDir = 'H:/Tickers/' + ticker + '/'
+    tickerDir = 'C:/Users/Admin/Downloads/' + ticker + '/'
     for dir in os.listdir(tickerDir):
         if isZeroDte:
             zeroDteExpirationDir = tickerDir + dir + '/0931/' + dir
@@ -441,6 +538,22 @@ def getExpirationDates(ticker, dateFilter=None, isZeroDte=None):
 
 
 def getTotalCostForSpread(optionLegsList, entry):
+    """[summary]
+
+    Parameters
+    ----------
+    optionLegsList : list
+        List of options and their respective legs in the following format
+        [strike, options type, bid, ask, delta, gamma, theta, vega]
+        [description]
+    entry : [type]
+        [description]
+
+    Returns
+    -------
+    [type]
+        [description]
+    """
     cost = 0.0
 
     for optionLeg in optionLegsList:
@@ -514,11 +627,15 @@ def getOptionRowForTimeStrikeType(optionSnapshotMap, time, strike, type):
         Returns a list of the option requestion in the following format:
         [strike, options type, bid, ask, delta, gamma, theta, vega]
     """
+    # If our map returns empty for that time, print something
     if optionSnapshotMap.get(time) is None:
-        print()
+        print("Map is fucked")
 
+    # Grab the list for that strike and time
     tempList = optionSnapshotMap.get(time).get(str(strike))
 
+    # Return the associated P/C at that strike, at that time in the following format
+    # [strike, options type, bid, ask, delta, gamma, theta, vega]
     if tempList is not None:
         for optionRow in tempList:
             if optionRow[1] == type:  # P or C
@@ -551,28 +668,37 @@ def calculateOptionMetrics(optionLegsList, closePrice):
     Returns
     -------
     Profit: float
-        Profit of the strategy based upon the short/long of options - has nothing to with credit/debits
+        "Profit of the strategy based upon the short/long of options, it
+        has nothing to with credit/debits. This is like for P&L diagrams
+        or something" - George (paraphrased by Erik)
     """
 
     profit = 0
 
+    # Looping over the legs in the stategy to find the P&L for the cash settlements
     for optionLeg in optionLegsList:
         strike = parseS2F(optionLeg[0][0])
+
         put = optionLeg[0][1] == 'P'
+
         call = optionLeg[0][1] == 'C'
         short = optionLeg[1] < 0
         long = optionLeg[1] > 0
         numberOfContracts = abs(optionLeg[1])
 
+        # Short puts have negative profit if we close below the strike
         if put and short:
             if closePrice < strike:
                 profit += (closePrice - strike) * numberOfContracts
+        # Long puts have positive profit if we close below the strike
         elif put and long:
             if closePrice < strike:
                 profit += (strike - closePrice) * numberOfContracts
+        # Short calls have negative profit if we close above the strike
         elif call and short:
             if closePrice > strike:
                 profit += (strike - closePrice) * numberOfContracts
+        # Long calls have positive profit if we close above the strike
         elif call and long:
             if closePrice > strike:
                 profit += (closePrice - strike) * numberOfContracts
@@ -604,3 +730,95 @@ def parseS2F(string):
         return 0.0
     else:
         return float(string)
+
+def main():
+    # filenames = next(walk('H:\CboeLightCSV'), (None, None, []))[2]
+    # filenamesFiltered = []
+
+    # for file in filenames:
+    #    date = file[len(file) - 5:len(file) - 15:-1]
+    #   date = date[::-1]
+    #
+    #   if date >= "2016-09-01":
+    #      filenamesFiltered.append('H:/CboeLightCSV/' + file)
+
+    # filenamesFiltered = 'H:/CboeLightCSV/LightUnderlyingOptionsIntervals_60sec_calcs_oi_level2_2016-09-01.csv'
+
+    # makeOptionSnapshotMapFromLightType(filenamesFiltered, '15:57', 'SPXW')
+
+    start2 = time.time()
+    # zeroDTEs = getExpirationDates(ticker='SPXW', isZeroDte=True)
+
+    # with concurrent.futures.ThreadPoolExecutor(24) as executor:
+    #    resultsMain = list(executor.map(SPX_M2W_G, zeroDTEs))
+    resultsMain = []
+    # strats = ['IFDM2W', 'IFUM2W', 'IFCM2W', 'IFPM2W', 'DoubleIFM2W', 'ICM2W']
+    # for strat in strats:
+    #   print(strat)
+    #    for zeroDTE in zeroDTEs:
+    #       resultsMain.append(SPX_M2W_G2(strat=strat, width=5, date=zeroDTE, size=1, startTime='15:59', stopTime=None))
+
+    # for zeroDTE in zeroDTEs:
+    #    resultsMain.append(SPX_M2W_G(zeroDTE))
+
+    resultsMain = SPX_SL_TP_Multi()
+
+    totalMapTime = time.time() - start2
+    print(totalMapTime)
+
+    # SPX_M2W_G('2016-09-02')
+
+    # with concurrent.futures.ProcessPoolExecutor(12) as executor:
+    #   resultsMain = list(executor.map(SPX_M2W, filenamesFiltered))
+
+    resultsFinal = []
+    for result in resultsMain:
+        if result is not None:
+            for r in result:
+                if r is not None:
+                    resultsFinal.append(r)
+
+    with open("output.csv", "w", newline="\n") as f:
+        writer = csv.writer(f)
+        headers = ['Date', 'Trade Type', 'P/L', 'Credit', 'Risk', 'Total Debit', 'Start Time Spot', 'Stop Time Spot',
+                   'Stop Time', 'Return', 'Positive Return', 'Negative Return']
+
+        #headers = ['Date', 'Trade Type', '9:31 Abs Daily Move <= Implied Move',
+         #          '9:32 Abs Daily Move <= Implied Move',
+          #         '9:33 Abs Daily Move <= Implied Move',
+           #        '9:34 Abs Daily Move <= Implied Move',
+            #       '9:35 Abs Daily Move <= Implied Move',
+             #      '15:55 Abs Daily Move <= Implied Move',
+              #     '15:56 Abs Daily Move <= Implied Move',
+               #    '15:57 Abs Daily Move <= Implied Move',
+                #   '15:58 Abs Daily Move <= Implied Move',
+                 #  '15:59 Abs Daily Move <= Implied Move']
+
+        # timeList = []
+        # startTimedt = datetime.datetime.strptime('09:35', '%H:%M')
+        # run = True
+        # while run:
+        #   startTimedt = startTimedt + datetime.timedelta(minutes=5)
+        #  startTimedtStr = datetime.datetime.strftime(startTimedt, '%H:%M')
+
+        # if startTimedtStr > '16:00':
+        #    run = False
+        # else:
+        #   timeList.append(startTimedtStr)
+
+        #differenceInSize = int((len(max(resultsFinal, key=len)) - len(headers)) / 3)
+        #for i in differenceInSize:#timeList:
+        #    headers.append('Strike ' + str(i))
+        #    headers.append('Strike ' + str(i) + ' Option Type')
+        #    headers.append('Strike ' + str(i) + ' Size')
+        # '{time} Implied Move', 'Abs {time} Spot - Close', '{time} Abs Difference'
+        #   headers.append('{time} Abs Daily Move <= Implied Move'.replace('{time}', i))
+
+        writer.writerows([headers])
+        writer.writerows(resultsFinal)
+
+    # print(results)
+
+
+if __name__ == '__main__':
+    main()
