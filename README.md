@@ -10,7 +10,7 @@ https://drive.google.com/drive/folders/1QUgbOwqzQCd_tf0cLnDw_wBv4wM-ejt-?usp=sha
 
 #### **W.I.P.**
 *Fall 2021* - Revisiting selling spreads on SPX, M2W Strategies, Predictive Ranges of SPX, Early Morning IF Analysis
-*Winter 2021* - Entropy: An Investment that "cannot go tits up"
+
 
 # Contact Information
 If you have any questions/comments/concerns regarding this code and/or the information presented in the results, please reach out to myself, Erik Rutyna via email at gourdcapital@gmail.com.

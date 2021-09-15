@@ -493,7 +493,32 @@ def generateFullDayOfTimes():
 
 
 def makeOptionSnapshotMapFromShortType(rootFilter=None, dateFilter=None, timeFilter=None, expirationFilter=None):
-    # H:\Tickers\SPXW\2017-01-19\0931\2017-01-23
+    """Generates a mapped dictionary to quickly access a specific option
+    for a ticker, date, time, and expiration date.
+
+    Extended Summary
+    ----------------
+    Loads in the various data files associated with the function inputs. 
+    Then it maps the data into a dictionary for easy sifting down to the
+    targeted option that the trade is looking for.
+
+    Parameters
+    ----------
+    rootFilter : string, optional
+        Ticker to be sorted, by default None
+    dateFilter : string, optional
+        Calender date(s) you want to search for an option, by default None
+    timeFilter : string, optional
+        Time(s) of day on the date you want to search for an option, by default None
+    expirationFilter : string, optional
+        Limits the mapping to only a certain expiration date(s), by default None
+
+    Returns
+    -------
+    optionSnapshotMap : Dictionary
+        Mapping/Dictionary of the options that can be easily indexed for fast access
+        Accessed via optionSnapshotMap.get("time").get(strike)
+    """
     rootDirectory = 'C:/Users/Admin/Downloads/'
     optionSnapshotMap = {}
     if int(timeFilter[0]) == 9:
@@ -524,6 +549,29 @@ def makeOptionSnapshotMapFromShortType(rootFilter=None, dateFilter=None, timeFil
 
 
 def getExpirationDates(ticker, dateFilter=None, isZeroDte=None):
+    """Returns a list of expiration dates in the data set.
+
+    Extended Summary
+    ----------------
+    Loops over the primary directory where the data is held, and 
+    checks for any and all possible trade expiration dates. If isZeroDte
+    is set to true, it skips over any non-0DTE expirations, and doesn't 
+    add them to the expiration date list.
+
+    Parameters
+    ----------
+    ticker : string
+        The ticker to be checked
+    dateFilter : string, optional
+        Calender day range you want to search, by default None
+    isZeroDte : bool, optional
+        Flag to either do all expirations, or only 0DTE, by default None
+
+    Returns
+    -------
+    expirationDates : list
+        List of all expiration dates, or list of all 0DTE expiration dates
+    """
     expirationDates = []
     tickerDir = 'C:/Users/Admin/Downloads/' + ticker + '/'
     for dir in os.listdir(tickerDir):
