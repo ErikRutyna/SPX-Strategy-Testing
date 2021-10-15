@@ -44,7 +44,7 @@ def SPX_SL_TP(expiration):
     Parameters
     ----------
     expiration : [type]
-        [description]
+        The expiration dates you want the strategy to be run on
 
     Returns
     -------
@@ -176,6 +176,20 @@ def SPX_SL_TP(expiration):
 
 
 def getPricesForDate(rootFilter, dateFilter):
+    """Gets the prices for the specified ticker on the selected dates
+
+    Parameters
+    ----------
+    rootFilter : list of strings
+        Symbol/ticker that you want to get the prices for
+    dateFilter : 
+        Dates you want the prices on, can be both 0DTE and non-0DTE
+
+    Returns
+    -------
+    pricesMap
+        Dictionary that allows quick access to price at a specific time
+    """
     # H:\Tickers\SPXW\2017-01-19\2017-01-19_prices.csv
     rootDirectory = 'C:/Users/Admin/Downloads/'
     pricesMap = {}
@@ -194,6 +208,28 @@ def getPricesForDate(rootFilter, dateFilter):
 
 
 def getStrikesForStrat(strat, startTime, width, size, pricesMap, optionSnapshotMap):
+    """[summary]
+
+    Parameters
+    ----------
+    strat : [type]
+        [description]
+    startTime : [type]
+        [description]
+    width : [type]
+        [description]
+    size : [type]
+        [description]
+    pricesMap : [type]
+        [description]
+    optionSnapshotMap : [type]
+        [description]
+
+    Returns
+    -------
+    [type]
+        [description]
+    """
     tempStrikeList = []
     spot = float(pricesMap.get(startTime))
 
@@ -269,6 +305,22 @@ def getStrikesForStrat(strat, startTime, width, size, pricesMap, optionSnapshotM
 
 
 def getReturns(profit, risk, width):
+    """Calculates the percent return of a trade
+
+    Parameters
+    ----------
+    profit : float
+        Possible profit to be made
+    risk : float
+        The amount of money risked
+    width : float 
+        The width of the trade
+
+    Returns
+    -------
+    Profit : float
+        Percent profited from the trade
+    """
     if risk > 0:
         return profit / risk
     else:
@@ -354,6 +406,32 @@ def DerivsCalc(Nought, Nought1, Nought2):
 
 
 def runStratWithStopLossTakeProfit(optionSnapshotMap, stratStrikeList, pricesMap, startTime, stopTime, stopLoss, takeProfit, dynamicTP):
+    """[summary]
+
+    Parameters
+    ----------
+    optionSnapshotMap : [type]
+        [description]
+    stratStrikeList : [type]
+        [description]
+    pricesMap : [type]
+        [description]
+    startTime : [type]
+        [description]
+    stopTime : [type]
+        [description]
+    stopLoss : [type]
+        [description]
+    takeProfit : [type]
+        [description]
+    dynamicTP : [type]
+        [description]
+
+    Returns
+    -------
+    [type]
+        [description]
+    """
     optionLegsList = []
     totalDebit = None
     profit = None
@@ -431,6 +509,26 @@ def runStratWithStopLossTakeProfit(optionSnapshotMap, stratStrikeList, pricesMap
         return totalCredit, totalDebit, abs(totalCredit) - abs(totalDebit), stopTime
 
 def runStratFromStartTimeToStopTime(optionSnapshotMap, stratStrikeList, pricesMap, startTime, stopTime):
+    """[summary]
+
+    Parameters
+    ----------
+    optionSnapshotMap : [type]
+        [description]
+    stratStrikeList : [type]
+        [description]
+    pricesMap : [type]
+        [description]
+    startTime : [type]
+        [description]
+    stopTime : [type]
+        [description]
+
+    Returns
+    -------
+    [type]
+        [description]
+    """
     optionLegsList = []
     totalDebit = None
     optionSpreadPnL = None
@@ -470,6 +568,20 @@ def runStratFromStartTimeToStopTime(optionSnapshotMap, stratStrikeList, pricesMa
         return None, None, None, None
 
 def addMinutesToTimeAsStringReturnString(timeString, minutes):
+    """[summary]
+
+    Parameters
+    ----------
+    timeString : [type]
+        [description]
+    minutes : [type]
+        [description]
+
+    Returns
+    -------
+    [type]
+        [description]
+    """
     startTimedt = datetime.datetime.strptime(timeString, '%H:%M')
     startTimedt = startTimedt + datetime.timedelta(minutes=minutes)
 
@@ -477,6 +589,15 @@ def addMinutesToTimeAsStringReturnString(timeString, minutes):
 
 
 def generateFullDayOfTimes():
+    """Generates a list of times incrementing up by 1 minute for
+    trade times during market hours.
+
+    Returns
+    -------
+    timeList
+        List of the times iterating up by 1 minute starting at 9:31 and
+        going until 16:00 
+    """
     timeList = []
     run = True
     startTimedt = datetime.datetime.strptime('09:30', '%H:%M')
